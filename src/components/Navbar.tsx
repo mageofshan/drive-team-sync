@@ -1,7 +1,28 @@
-import { Calendar, Users, Car, ClipboardList, DollarSign, BarChart3 } from "lucide-react";
+import { Calendar, Users, Car, ClipboardList, DollarSign, BarChart3, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You've been successfully signed out",
+      });
+    }
+  };
+
   const navItems = [
     { icon: BarChart3, label: "Dashboard", active: true },
     { icon: Users, label: "Team" },
@@ -39,10 +60,11 @@ const Navbar = () => {
           
           <div className="flex items-center space-x-4">
             <div className="text-sm text-muted-foreground">
-              Team 254 - The Cheesy Poofs
+              {user?.email || "Team 254 - The Cheesy Poofs"}
             </div>
-            <Button variant="outline" size="sm">
-              Sign In
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
             </Button>
           </div>
         </div>

@@ -1,14 +1,47 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import Navbar from "@/components/Navbar";
 import DashboardStats from "@/components/DashboardStats";
 import RecentActivity from "@/components/RecentActivity";
 import UpcomingEvents from "@/components/UpcomingEvents";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Wrench, Target, Trophy, Clock } from "lucide-react";
+import { Wrench, Target, Trophy, Clock, LogIn } from "lucide-react";
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to auth if not logged in
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-4">
+            <div className="bg-gradient-to-r from-first-blue to-first-red p-3 rounded-full">
+              <Trophy className="w-8 h-8 text-white" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">FIRST Tracker</h1>
+          <p className="text-muted-foreground mb-6">
+            Your robotics team's digital headquarters
+          </p>
+          <Button 
+            onClick={() => navigate('/auth')}
+            className="bg-gradient-to-r from-first-blue to-first-red text-white shadow-glow"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            Sign In to Get Started
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const teamProgress = [
     { task: "Robot Design", progress: 85, status: "On Track" },
     { task: "Programming", progress: 72, status: "Needs Attention" },
@@ -38,10 +71,11 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <Navbar />
-      
-      <main className="container mx-auto px-6 py-8">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-subtle">
+        <Navbar />
+        
+        <main className="container mx-auto px-6 py-8">
         {/* Hero Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -142,8 +176,9 @@ const Index = () => {
             </Card>
           </div>
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </ProtectedRoute>
   );
 };
 
