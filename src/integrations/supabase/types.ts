@@ -14,7 +14,427 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          checked_in_at: string | null
+          created_at: string
+          event_id: string
+          id: string
+          notes: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          checked_in_at?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          notes?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          checked_in_at?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carpool_riders: {
+        Row: {
+          carpool_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          pickup_location: string | null
+          rider_id: string
+        }
+        Insert: {
+          carpool_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pickup_location?: string | null
+          rider_id: string
+        }
+        Update: {
+          carpool_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pickup_location?: string | null
+          rider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carpool_riders_carpool_id_fkey"
+            columns: ["carpool_id"]
+            isOneToOne: false
+            referencedRelation: "carpools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carpools: {
+        Row: {
+          available_seats: number
+          created_at: string
+          departure_location: string
+          departure_time: string
+          driver_id: string
+          event_id: string
+          id: string
+          notes: string | null
+          return_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          available_seats?: number
+          created_at?: string
+          departure_location: string
+          departure_time: string
+          driver_id: string
+          event_id: string
+          id?: string
+          notes?: string | null
+          return_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          available_seats?: number
+          created_at?: string
+          departure_location?: string
+          departure_time?: string
+          driver_id?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          return_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carpools_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_rsvps: {
+        Row: {
+          comment: string | null
+          created_at: string
+          event_id: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          end_time: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          id: string
+          is_recurring: boolean | null
+          location: string | null
+          max_attendees: number | null
+          recurrence_pattern: Json | null
+          start_time: string
+          team_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_time: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          id?: string
+          is_recurring?: boolean | null
+          location?: string | null
+          max_attendees?: number | null
+          recurrence_pattern?: Json | null
+          start_time: string
+          team_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_time?: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          id?: string
+          is_recurring?: boolean | null
+          location?: string | null
+          max_attendees?: number | null
+          recurrence_pattern?: Json | null
+          start_time?: string
+          team_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finances: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          created_by: string
+          date: string
+          description: string
+          expense_category:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
+          id: string
+          income_source: Database["public"]["Enums"]["income_source"] | null
+          receipt_url: string | null
+          team_id: string
+          type: Database["public"]["Enums"]["finance_type"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          created_by: string
+          date?: string
+          description: string
+          expense_category?:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
+          id?: string
+          income_source?: Database["public"]["Enums"]["income_source"] | null
+          receipt_url?: string | null
+          team_id: string
+          type: Database["public"]["Enums"]["finance_type"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          date?: string
+          description?: string
+          expense_category?:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
+          id?: string
+          income_source?: Database["public"]["Enums"]["income_source"] | null
+          receipt_url?: string | null
+          team_id?: string
+          type?: Database["public"]["Enums"]["finance_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finances_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          dietary_restrictions: string | null
+          email: string | null
+          emergency_contact: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          team_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          dietary_restrictions?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          team_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          dietary_restrictions?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          team_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          actual_hours: number | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"] | null
+          status: Database["public"]["Enums"]["task_status"] | null
+          tags: string[] | null
+          team_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"] | null
+          status?: Database["public"]["Enums"]["task_status"] | null
+          tags?: string[] | null
+          team_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"] | null
+          status?: Database["public"]["Enums"]["task_status"] | null
+          tags?: string[] | null
+          team_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          name: string
+          team_number: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name: string
+          team_number?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name?: string
+          team_number?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +443,33 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      event_type: "meeting" | "practice" | "outreach" | "competition" | "other"
+      expense_category:
+        | "parts"
+        | "travel"
+        | "hotel"
+        | "food"
+        | "registration"
+        | "tools"
+        | "other"
+      finance_type: "income" | "expense"
+      income_source:
+        | "grant"
+        | "donation"
+        | "sponsorship"
+        | "fundraising"
+        | "other"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status: "todo" | "in_progress" | "review" | "done"
+      user_role:
+        | "admin"
+        | "code_lead"
+        | "mechanical_lead"
+        | "electrical_lead"
+        | "drive_coach"
+        | "student_mentor"
+        | "student"
+        | "mentor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +596,37 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      event_type: ["meeting", "practice", "outreach", "competition", "other"],
+      expense_category: [
+        "parts",
+        "travel",
+        "hotel",
+        "food",
+        "registration",
+        "tools",
+        "other",
+      ],
+      finance_type: ["income", "expense"],
+      income_source: [
+        "grant",
+        "donation",
+        "sponsorship",
+        "fundraising",
+        "other",
+      ],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: ["todo", "in_progress", "review", "done"],
+      user_role: [
+        "admin",
+        "code_lead",
+        "mechanical_lead",
+        "electrical_lead",
+        "drive_coach",
+        "student_mentor",
+        "student",
+        "mentor",
+      ],
+    },
   },
 } as const
