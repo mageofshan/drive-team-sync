@@ -9,32 +9,55 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 213 94% 50%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 214 25% 95%;
+    --secondary-foreground: 215 25% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 214 25% 95%;
+    --muted-foreground: 215 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 213 94% 96%;
+    --accent-foreground: 213 94% 50%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 214 25% 88%;
+    --input: 214 25% 88%;
+    --ring: 213 94% 50%;
+    
+    /* FIRST Robotics Brand Colors */
+    --first-blue: 213 94% 50%;
+    --first-red: 0 85% 55%;
+    --first-blue-light: 213 94% 96%;
+    --first-red-light: 0 85% 96%;
+    
+    /* Engineering Theme */
+    --tech-gray: 215 15% 25%;
+    --tech-gray-light: 215 15% 85%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--first-blue)), hsl(213 94% 40%));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--first-blue)) 0%, hsl(var(--first-red)) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(214 25% 98%));
+    
+    /* Shadows */
+    --shadow-soft: 0 2px 8px -2px hsl(215 25% 15% / 0.1);
+    --shadow-medium: 0 8px 25px -8px hsl(215 25% 15% / 0.15);
+    --shadow-strong: 0 16px 40px -12px hsl(215 25% 15% / 0.25);
+    --shadow-glow: 0 0 30px hsl(var(--first-blue) / 0.3);
 
     --radius: 0.5rem;
 
