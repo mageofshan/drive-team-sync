@@ -32,7 +32,7 @@ const Navbar = () => {
     { icon: Calendar, label: "Calendar", path: "/calendar" },
     { icon: Car, label: "Transportation", path: "/transportation" },
     { icon: ClipboardList, label: "Tasks", path: "/tasks" },
-    { icon: DollarSign, label: "Budget", path: "/budget" },
+    { icon: DollarSign, label: "Finances", path: "/finances" },
   ];
 
   return (
