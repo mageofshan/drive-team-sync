@@ -30,7 +30,7 @@ const Navbar = () => {
     { icon: BarChart3, label: "Dashboard", path: "/" },
     { icon: Users, label: "Team", path: "/team" },
     { icon: Calendar, label: "Calendar", path: "/calendar" },
-    { icon: Car, label: "Carpool", path: "/carpool" },
+    { icon: Car, label: "Transportation", path: "/transportation" },
     { icon: ClipboardList, label: "Tasks", path: "/tasks" },
     { icon: DollarSign, label: "Budget", path: "/budget" },
   ];
