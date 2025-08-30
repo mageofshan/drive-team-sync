@@ -10,6 +10,7 @@ import Tasks from "./pages/Tasks";
 import Calendar from "./pages/Calendar";
 import Transportation from "./pages/Transportation";
 import Finances from "./pages/Finances";
+import Team from "./pages/Team";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/team" element={<Team />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/transportation" element={<Transportation />} />

@@ -293,6 +293,84 @@ export type Database = {
           },
         ]
       }
+      mentions: {
+        Row: {
+          created_at: string
+          id: string
+          mentioned_category: string | null
+          mentioned_user_id: string | null
+          message_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mentioned_category?: string | null
+          mentioned_user_id?: string | null
+          message_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mentioned_category?: string | null
+          mentioned_user_id?: string | null
+          message_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          carpool_id: string | null
+          content: string
+          created_at: string
+          file_name: string | null
+          file_url: string | null
+          id: string
+          is_pinned: boolean | null
+          message_type: Database["public"]["Enums"]["message_type"]
+          resource_category:
+            | Database["public"]["Enums"]["resource_category"]
+            | null
+          task_id: string | null
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          carpool_id?: string | null
+          content: string
+          created_at?: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          message_type?: Database["public"]["Enums"]["message_type"]
+          resource_category?:
+            | Database["public"]["Enums"]["resource_category"]
+            | null
+          task_id?: string | null
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          carpool_id?: string | null
+          content?: string
+          created_at?: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          message_type?: Database["public"]["Enums"]["message_type"]
+          resource_category?:
+            | Database["public"]["Enums"]["resource_category"]
+            | null
+          task_id?: string | null
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -459,6 +537,13 @@ export type Database = {
         | "sponsorship"
         | "fundraising"
         | "other"
+      message_type: "chat" | "task" | "carpool" | "resource"
+      resource_category:
+        | "cad"
+        | "code"
+        | "mechanical"
+        | "electrical"
+        | "general"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "review" | "done"
       user_role:
@@ -615,6 +700,8 @@ export const Constants = {
         "fundraising",
         "other",
       ],
+      message_type: ["chat", "task", "carpool", "resource"],
+      resource_category: ["cad", "code", "mechanical", "electrical", "general"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["todo", "in_progress", "review", "done"],
       user_role: [
