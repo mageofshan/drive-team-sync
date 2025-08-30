@@ -2,10 +2,13 @@ import { Calendar, Users, Car, ClipboardList, DollarSign, BarChart3, LogOut } fr
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -24,12 +27,12 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { icon: BarChart3, label: "Dashboard", active: true },
-    { icon: Users, label: "Team" },
-    { icon: Calendar, label: "Calendar" },
-    { icon: Car, label: "Carpool" },
-    { icon: ClipboardList, label: "Tasks" },
-    { icon: DollarSign, label: "Budget" },
+    { icon: BarChart3, label: "Dashboard", path: "/" },
+    { icon: Users, label: "Team", path: "/team" },
+    { icon: Calendar, label: "Calendar", path: "/calendar" },
+    { icon: Car, label: "Carpool", path: "/carpool" },
+    { icon: ClipboardList, label: "Tasks", path: "/tasks" },
+    { icon: DollarSign, label: "Budget", path: "/budget" },
   ];
 
   return (
@@ -48,8 +51,9 @@ const Navbar = () => {
               {navItems.map((item) => (
                 <Button
                   key={item.label}
-                  variant={item.active ? "default" : "ghost"}
+                  variant={location.pathname === item.path ? "default" : "ghost"}
                   className="flex items-center space-x-2"
+                  onClick={() => navigate(item.path)}
                 >
                   <item.icon className="w-4 h-4" />
                   <span>{item.label}</span>
