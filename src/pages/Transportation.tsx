@@ -99,11 +99,11 @@ const Transportation = () => {
         .from('carpools')
         .select(`
           *,
-          driver_profile:profiles!carpools_driver_id_fkey(first_name, last_name),
+          driver_profile:profiles(first_name, last_name),
           event:events(title, location),
           riders:carpool_riders(
             id, rider_id, pickup_location, notes,
-            rider_profile:profiles!carpool_riders_rider_id_fkey(first_name, last_name)
+            rider_profile:profiles(first_name, last_name)
           )
         `)
         .order('departure_time', { ascending: true });
@@ -139,7 +139,7 @@ const Transportation = () => {
     try {
       const { error } = await supabase.from('carpools').insert({
         driver_id: user.id,
-        event_id: formData.eventId || null,
+        event_id: formData.eventId === 'none' ? null : formData.eventId || null,
         departure_location: formData.departureLocation,
         departure_time: formData.departureTime,
         return_time: formData.returnTime || null,
@@ -334,7 +334,7 @@ const Transportation = () => {
                       <SelectValue placeholder="Select an event" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No specific event</SelectItem>
+                      <SelectItem value="none">No specific event</SelectItem>
                       {events.map((event) => (
                         <SelectItem key={event.id} value={event.id}>
                           {event.title}
