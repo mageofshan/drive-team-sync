@@ -88,6 +88,8 @@ const TeamCalendar = () => {
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [memberFilter, setMemberFilter] = useState<string>('all');
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEventData | null>(null);
+  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
 
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
@@ -269,6 +271,64 @@ const TeamCalendar = () => {
     form.setValue('end_time', end);
     setIsCreateOpen(true);
   }, [form]);
+
+  const handleEventSelect = useCallback((event: CalendarEventData) => {
+    setSelectedEvent(event);
+    setIsEventDetailsOpen(true);
+  }, []);
+
+  const handleRSVP = async (eventId: string, status: 'yes' | 'no' | 'maybe') => {
+    try {
+      const { error } = await supabase
+        .from('event_rsvps')
+        .upsert({
+          event_id: eventId,
+          user_id: user!.id,
+          status: status,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: `RSVP updated to ${status}`,
+      });
+    } catch (error) {
+      console.error('Error updating RSVP:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update RSVP',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleMarkAttendance = async (eventId: string) => {
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .insert({
+          event_id: eventId,
+          user_id: user!.id,
+          status: 'present',
+          checked_in_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Attendance marked successfully',
+      });
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to mark attendance',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const getEventStyle = (event: CalendarEventData) => {
     const baseStyle = {
@@ -753,6 +813,7 @@ const TeamCalendar = () => {
                   date={date}
                   onNavigate={setDate}
                   onSelectSlot={handleSelectSlot}
+                  onSelectEvent={handleEventSelect}
                   selectable
                   eventPropGetter={(event) => ({
                     style: getEventStyle(event as CalendarEventData)
@@ -771,6 +832,74 @@ const TeamCalendar = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Event Details Dialog */}
+          <Dialog open={isEventDetailsOpen} onOpenChange={setIsEventDetailsOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>{selectedEvent?.title}</DialogTitle>
+              </DialogHeader>
+              {selectedEvent && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {format(selectedEvent.start, 'PPP p')} - {format(selectedEvent.end, 'p')}
+                    </p>
+                    {selectedEvent.description && (
+                      <p className="text-sm">{selectedEvent.description}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {selectedEvent.type === 'event' && (
+                      <>
+                        <div>
+                          <h4 className="font-medium mb-2">RSVP</h4>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleRSVP(selectedEvent.id, 'yes')}
+                              className="bg-success hover:bg-success/80"
+                            >
+                              Yes
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRSVP(selectedEvent.id, 'maybe')}
+                            >
+                              Maybe
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRSVP(selectedEvent.id, 'no')}
+                            >
+                              No
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {selectedEvent.category === 'practice' && (
+                          <div>
+                            <h4 className="font-medium mb-2">Attendance</h4>
+                            <Button
+                              size="sm"
+                              onClick={() => handleMarkAttendance(selectedEvent.id)}
+                              className="bg-first-blue hover:bg-first-blue/80"
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Mark Present
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </ProtectedRoute>

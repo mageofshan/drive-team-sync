@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import Navbar from "@/components/Navbar";
 import DashboardStats from "@/components/DashboardStats";
 import RecentActivity from "@/components/RecentActivity";
@@ -10,11 +11,154 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Wrench, Target, Trophy, Clock, LogIn } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { Wrench, Target, Trophy, Clock, LogIn, CalendarIcon, CheckCircle2, Users } from "lucide-react";
+
+const taskFormSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  assigned_to: z.string().optional(),
+  due_date: z.date().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']),
+  estimated_hours: z.coerce.number().min(0).optional(),
+});
 
 const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isLogHoursOpen, setIsLogHoursOpen] = useState(false);
+  const [isMarkAttendanceOpen, setIsMarkAttendanceOpen] = useState(false);
+  const [hoursToLog, setHoursToLog] = useState('');
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+
+  const taskForm = useForm<z.infer<typeof taskFormSchema>>({
+    resolver: zodResolver(taskFormSchema),
+    defaultValues: {
+      priority: 'medium',
+    },
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchTeamMembers();
+    }
+  }, [user]);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, user_id, first_name, last_name, email')
+        .not('team_id', 'is', null);
+
+      if (error) throw error;
+      setTeamMembers(data || []);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+    }
+  };
+
+  const onCreateTask = async (values: z.infer<typeof taskFormSchema>) => {
+    try {
+      const { error } = await supabase.from('tasks').insert({
+        title: values.title,
+        description: values.description || null,
+        assigned_to: values.assigned_to || null,
+        due_date: values.due_date?.toISOString() || null,
+        priority: values.priority,
+        estimated_hours: values.estimated_hours || null,
+        created_by: user!.id,
+        team_id: user!.id,
+        status: 'todo',
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Task created successfully',
+      });
+
+      setIsCreateTaskOpen(false);
+      taskForm.reset();
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create task',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleLogHours = async () => {
+    if (!hoursToLog) return;
+
+    try {
+      await supabase.from('finances').insert({
+        type: 'income',
+        amount: parseFloat(hoursToLog),
+        description: 'Work hours logged',
+        date: new Date().toISOString().split('T')[0],
+        created_by: user!.id,
+        team_id: user!.id,
+        category: 'Work Hours',
+      });
+
+      toast({
+        title: 'Success',
+        description: `Logged ${hoursToLog} hours`,
+      });
+
+      setIsLogHoursOpen(false);
+      setHoursToLog('');
+    } catch (error) {
+      console.error('Error logging hours:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to log hours',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleMarkAttendance = async () => {
+    try {
+      await supabase.from('attendance').insert({
+        user_id: user!.id,
+        status: 'present',
+        checked_in_at: new Date().toISOString(),
+        event_id: 'practice-session', // This would be a real event ID in practice
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Attendance marked successfully',
+      });
+
+      setIsMarkAttendanceOpen(false);
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to mark attendance',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Redirect to auth if not logged in
   if (!user) {
@@ -160,18 +304,206 @@ const Index = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
-                  <Wrench className="w-4 h-4 mr-2" />
-                  Log Work Hours
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Target className="w-4 h-4 mr-2" />
-                  Create New Task
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Clock className="w-4 h-4 mr-2" />
-                  Mark Attendance
-                </Button>
+                <Dialog open={isLogHoursOpen} onOpenChange={setIsLogHoursOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Wrench className="w-4 h-4 mr-2" />
+                      Log Work Hours
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Log Work Hours</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium">Hours Worked</label>
+                        <Input
+                          type="number"
+                          step="0.5"
+                          placeholder="Enter hours worked"
+                          value={hoursToLog}
+                          onChange={(e) => setHoursToLog(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => setIsLogHoursOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleLogHours}>
+                          Log Hours
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Target className="w-4 h-4 mr-2" />
+                      Create New Task
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Create New Task</DialogTitle>
+                    </DialogHeader>
+                    <Form {...taskForm}>
+                      <form onSubmit={taskForm.handleSubmit(onCreateTask)} className="space-y-4">
+                        <FormField
+                          control={taskForm.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Title</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter task title" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={taskForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Enter task description" 
+                                  {...field} 
+                                  rows={3}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={taskForm.control}
+                          name="assigned_to"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Assign To</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select team member" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {teamMembers.map((member) => (
+                                    <SelectItem key={member.user_id} value={member.user_id}>
+                                      {member.first_name} {member.last_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={taskForm.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Priority</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select priority" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="low">Low</SelectItem>
+                                  <SelectItem value="medium">Medium</SelectItem>
+                                  <SelectItem value="high">High</SelectItem>
+                                  <SelectItem value="urgent">Urgent</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={taskForm.control}
+                          name="due_date"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>Due Date</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className="w-full pl-3 text-left font-normal"
+                                    >
+                                      {field.value ? (
+                                        format(field.value, "PPP")
+                                      ) : (
+                                        <span>Pick a date</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) => date < new Date()}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <Button type="submit" className="w-full">
+                          Create Task
+                        </Button>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isMarkAttendanceOpen} onOpenChange={setIsMarkAttendanceOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Clock className="w-4 h-4 mr-2" />
+                      Mark Attendance
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Mark Attendance</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Mark your attendance for today's session
+                      </p>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => setIsMarkAttendanceOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleMarkAttendance}>
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                          Mark Present
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
           </div>

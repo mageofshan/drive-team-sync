@@ -85,6 +85,9 @@ const Tasks = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isLogHoursOpen, setIsLogHoursOpen] = useState(false);
+  const [hoursToLog, setHoursToLog] = useState('');
 
   const form = useForm<z.infer<typeof taskFormSchema>>({
     resolver: zodResolver(taskFormSchema),
@@ -213,6 +216,38 @@ const Tasks = () => {
       toast({
         title: 'Error',
         description: 'Failed to update task',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleLogHours = async () => {
+    if (!selectedTask || !hoursToLog) return;
+
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ 
+          actual_hours: (selectedTask.actual_hours || 0) + parseFloat(hoursToLog)
+        })
+        .eq('id', selectedTask.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: `Logged ${hoursToLog} hours for task`,
+      });
+
+      setIsLogHoursOpen(false);
+      setHoursToLog('');
+      setSelectedTask(null);
+      fetchTasks();
+    } catch (error) {
+      console.error('Error logging hours:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to log hours',
         variant: 'destructive',
       });
     }
@@ -619,18 +654,30 @@ const Tasks = () => {
                         </Badge>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleTaskStatus(task.id, task.status)}
-                      className="ml-2"
-                    >
-                      {task.status === 'done' ? (
-                        <CheckCircle2 className="w-5 h-5 text-success" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-muted-foreground" />
-                      )}
-                    </Button>
+                    <div className="flex space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleTaskStatus(task.id, task.status)}
+                      >
+                        {task.status === 'done' ? (
+                          <CheckCircle2 className="w-4 h-4" />
+                        ) : (
+                          <Circle className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedTask(task);
+                          setIsLogHoursOpen(true);
+                        }}
+                      >
+                        <Clock className="w-4 h-4 mr-1" />
+                        Log Hours
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 
@@ -695,6 +742,39 @@ const Tasks = () => {
               </p>
             </div>
           )}
+
+          {/* Log Hours Dialog */}
+          <Dialog open={isLogHoursOpen} onOpenChange={setIsLogHoursOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Log Work Hours</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Task:</p>
+                  <p className="font-medium">{selectedTask?.title}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Hours Worked</label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    placeholder="Enter hours worked"
+                    value={hoursToLog}
+                    onChange={(e) => setHoursToLog(e.target.value)}
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsLogHoursOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleLogHours}>
+                    Log Hours
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </ProtectedRoute>
