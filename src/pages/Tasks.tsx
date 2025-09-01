@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
@@ -350,6 +350,9 @@ const Tasks = () => {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Create New Task</DialogTitle>
+                    <DialogDescription>
+                      Create a new task for your team with details and assignment.
+                    </DialogDescription>
                   </DialogHeader>
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -748,6 +751,9 @@ const Tasks = () => {
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Log Work Hours</DialogTitle>
+                <DialogDescription>
+                  Record the actual time spent working on this task.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>

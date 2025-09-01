@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -403,6 +403,9 @@ const Index = () => {
                   <DialogContent className="max-w-md">
                     <DialogHeader>
                       <DialogTitle>Log Work Hours</DialogTitle>
+                      <DialogDescription>
+                        Log the hours you worked on a specific task.
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div>
@@ -437,6 +440,9 @@ const Index = () => {
                   <DialogContent className="max-w-md">
                     <DialogHeader>
                       <DialogTitle>Create New Task</DialogTitle>
+                      <DialogDescription>
+                        Create a new task and assign it to a team member.
+                      </DialogDescription>
                     </DialogHeader>
                     <Form {...taskForm}>
                       <form onSubmit={taskForm.handleSubmit(onCreateTask)} className="space-y-4">
@@ -576,6 +582,9 @@ const Index = () => {
                   <DialogContent className="max-w-md">
                     <DialogHeader>
                       <DialogTitle>Mark Attendance</DialogTitle>
+                      <DialogDescription>
+                        Mark your attendance for today's session.
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <p className="text-sm text-muted-foreground">
