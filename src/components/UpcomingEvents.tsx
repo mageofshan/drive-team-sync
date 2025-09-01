@@ -1,41 +1,118 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
+
+interface Event {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  attendees: number;
+  type: string;
+  status: string;
+  start_time: string;
+  end_time: string;
+  event_type: string;
+}
 
 const UpcomingEvents = () => {
-  const events = [
-    {
-      id: 1,
-      title: "Design Review Meeting",
-      date: "Today",
-      time: "4:00 PM",
-      location: "Workshop Room B",
-      attendees: 12,
-      type: "meeting",
-      status: "confirmed",
-    },
-    {
-      id: 2,
-      title: "Bay Area Regional",
-      date: "Mar 15-17",
-      time: "All Day",
-      location: "San Jose Convention Center",
-      attendees: 24,
-      type: "competition",
-      status: "upcoming",
-    },
-    {
-      id: 3,
-      title: "Programming Workshop",
-      date: "Tomorrow",
-      time: "6:00 PM",
-      location: "Computer Lab",
-      attendees: 8,
-      type: "workshop",
-      status: "needs-rsvp",
-    },
-  ];
+  const { user } = useAuth();
+  const [events, setEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      fetchUpcomingEvents();
+    }
+  }, [user]);
+
+  const fetchUpcomingEvents = async () => {
+    try {
+      // Get user's team ID first
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('team_id')
+        .eq('user_id', user!.id)
+        .single();
+
+      if (!userProfile?.team_id) return;
+
+      // Fetch upcoming events
+      const { data: upcomingEvents } = await supabase
+        .from('events')
+        .select('*')
+        .eq('team_id', userProfile.team_id)
+        .gte('start_time', new Date().toISOString())
+        .order('start_time', { ascending: true })
+        .limit(3);
+
+      if (upcomingEvents) {
+        const eventsWithAttendees = await Promise.all(
+          upcomingEvents.map(async (event) => {
+            // Get RSVP count for each event
+            const { count: attendeeCount } = await supabase
+              .from('event_rsvps')
+              .select('*', { count: 'exact', head: true })
+              .eq('event_id', event.id)
+              .eq('status', 'yes');
+
+            // Check if current user has RSVP'd
+            const { data: userRsvp } = await supabase
+              .from('event_rsvps')
+              .select('status')
+              .eq('event_id', event.id)
+              .eq('user_id', user!.id)
+              .single();
+
+            const startDate = new Date(event.start_time);
+            const endDate = new Date(event.end_time);
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            let dateString = format(startDate, 'MMM dd');
+            if (startDate.toDateString() === today.toDateString()) {
+              dateString = 'Today';
+            } else if (startDate.toDateString() === tomorrow.toDateString()) {
+              dateString = 'Tomorrow';
+            }
+
+            const timeString = format(startDate, 'h:mm a');
+            
+            let status = 'upcoming';
+            if (userRsvp) {
+              status = userRsvp.status === 'yes' ? 'confirmed' : userRsvp.status === 'maybe' ? 'maybe' : 'declined';
+            } else {
+              status = 'needs-rsvp';
+            }
+
+            return {
+              id: event.id,
+              title: event.title,
+              date: dateString,
+              time: timeString,
+              location: event.location || 'TBD',
+              attendees: attendeeCount || 0,
+              type: event.event_type || 'meeting',
+              status: status,
+              start_time: event.start_time,
+              end_time: event.end_time,
+              event_type: event.event_type
+            };
+          })
+        );
+
+        setEvents(eventsWithAttendees);
+      }
+    } catch (error) {
+      console.error('Error fetching upcoming events:', error);
+    }
+  };
 
   const getEventColor = (type: string) => {
     switch (type) {

@@ -160,6 +160,102 @@ const Index = () => {
     }
   };
 
+  const [teamName, setTeamName] = useState('Team');
+  const [teamNumber, setTeamNumber] = useState('');
+  const [seasonInfo, setSeasonInfo] = useState('2024 Season');
+  const [teamProgress, setTeamProgress] = useState([
+    { task: "Robot Design", progress: 0, status: "Unknown" },
+    { task: "Programming", progress: 0, status: "Unknown" },
+    { task: "Mechanical Build", progress: 0, status: "Unknown" },
+    { task: "Electrical Systems", progress: 0, status: "Unknown" },
+  ]);
+
+  useEffect(() => {
+    if (user) {
+      fetchTeamInfo();
+      fetchTeamProgress();
+    }
+  }, [user]);
+
+  const fetchTeamInfo = async () => {
+    try {
+      // Get user's profile and team info
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select(`
+          team_id,
+          teams!inner(name, team_number)
+        `)
+        .eq('user_id', user!.id)
+        .single();
+
+      if (userProfile?.teams) {
+        const team = userProfile.teams as any;
+        setTeamName(team.name || 'Team');
+        setTeamNumber(team.team_number ? `#${team.team_number}` : '');
+      }
+    } catch (error) {
+      console.error('Error fetching team info:', error);
+    }
+  };
+
+  const fetchTeamProgress = async () => {
+    try {
+      // Get user's team ID first
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('team_id')
+        .eq('user_id', user!.id)
+        .single();
+
+      if (!userProfile?.team_id) return;
+
+      // Calculate progress based on tasks
+      const categories = ['design', 'programming', 'mechanical', 'electrical'];
+      const progressData = await Promise.all(
+        categories.map(async (category) => {
+          const { count: totalTasks } = await supabase
+            .from('tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('team_id', userProfile.team_id)
+            .contains('tags', [category]);
+
+          const { count: completedTasks } = await supabase
+            .from('tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('team_id', userProfile.team_id)
+            .eq('status', 'done')
+            .contains('tags', [category]);
+
+          const progress = totalTasks ? Math.round((completedTasks! / totalTasks!) * 100) : 0;
+          
+          let status = "Unknown";
+          if (progress >= 90) status = "Ahead";
+          else if (progress >= 75) status = "On Track";
+          else if (progress >= 50) status = "Needs Attention";
+          else if (progress > 0) status = "Behind";
+
+          const taskNames = {
+            design: "Robot Design",
+            programming: "Programming",
+            mechanical: "Mechanical Build",
+            electrical: "Electrical Systems"
+          };
+
+          return {
+            task: taskNames[category as keyof typeof taskNames],
+            progress,
+            status
+          };
+        })
+      );
+
+      setTeamProgress(progressData);
+    } catch (error) {
+      console.error('Error fetching team progress:', error);
+    }
+  };
+
   // Redirect to auth if not logged in
   if (!user) {
     return (
@@ -185,13 +281,6 @@ const Index = () => {
       </div>
     );
   }
-
-  const teamProgress = [
-    { task: "Robot Design", progress: 85, status: "On Track" },
-    { task: "Programming", progress: 72, status: "Needs Attention" },
-    { task: "Mechanical Build", progress: 91, status: "Ahead" },
-    { task: "Electrical Systems", progress: 68, status: "Behind" },
-  ];
 
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return "bg-success";
@@ -225,10 +314,10 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">
-                Welcome back, Team 254! 🤖
+                Welcome back, {teamName} {teamNumber}! 🤖
               </h1>
               <p className="text-muted-foreground">
-                2024 CRESCENDO Season • 42 days until Regional Competition
+                {seasonInfo} • Building the future together
               </p>
             </div>
             <div className="flex items-center space-x-3">
