@@ -172,7 +172,7 @@ const TeamCalendar = () => {
         .from('tasks')
         .select(`
           *,
-          assigned_user:profiles(
+          assigned_user:profiles!fk_tasks_assigned_to_profiles(
             first_name,
             last_name,
             email
@@ -220,6 +220,22 @@ const TeamCalendar = () => {
 
   const onSubmit = async (values: z.infer<typeof eventFormSchema>) => {
     try {
+      // Get user's team_id from their profile
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('team_id')
+        .eq('user_id', user!.id)
+        .single();
+
+      if (!userProfile?.team_id) {
+        toast({
+          title: 'Error',
+          description: 'Please join a team to create events',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const { error } = await supabase.from('events').insert({
         title: values.title,
         description: values.description || null,
@@ -228,7 +244,7 @@ const TeamCalendar = () => {
         event_type: values.event_type,
         location: values.location || null,
         created_by: user!.id,
-        team_id: user!.id, // This should be the actual team_id
+        team_id: userProfile.team_id,
       });
 
       if (error) throw error;
@@ -241,7 +257,7 @@ const TeamCalendar = () => {
           description: `Work hours: ${values.title}`,
           date: values.start_time.toISOString().split('T')[0],
           created_by: user!.id,
-          team_id: user!.id,
+          team_id: userProfile.team_id,
           category: 'Work Hours',
         });
       }

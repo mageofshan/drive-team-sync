@@ -107,28 +107,18 @@ const Tasks = () => {
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .select('*')
+        .select(`
+          *,
+          assigned_user:profiles!fk_tasks_assigned_to_profiles(
+            first_name,
+            last_name,
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      // Fetch assigned users separately
-      const tasksWithUsers = await Promise.all(
-        (data || []).map(async (task) => {
-          if (task.assigned_to) {
-            const { data: userData } = await supabase
-              .from('profiles')
-              .select('first_name, last_name, email')
-              .eq('user_id', task.assigned_to)
-              .single();
-            
-            return { ...task, assigned_user: userData };
-          }
-          return task;
-        })
-      );
-
-      setTasks(tasksWithUsers as Task[]);
+      setTasks(data || []);
     } catch (error) {
       console.error('Error fetching tasks:', error);
       toast({
@@ -157,6 +147,22 @@ const Tasks = () => {
 
   const onSubmit = async (values: z.infer<typeof taskFormSchema>) => {
     try {
+      // Get user's team_id from their profile
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('team_id')
+        .eq('user_id', user!.id)
+        .single();
+
+      if (!userProfile?.team_id) {
+        toast({
+          title: 'Error',
+          description: 'Please join a team to create tasks',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const tagsArray = values.tags 
         ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean)
         : null;
@@ -170,7 +176,7 @@ const Tasks = () => {
         tags: tagsArray,
         estimated_hours: values.estimated_hours || null,
         created_by: user!.id,
-        team_id: user!.id, // This should be the actual team_id from user profile
+        team_id: userProfile.team_id,
         status: 'todo',
       });
 
