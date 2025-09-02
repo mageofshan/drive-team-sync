@@ -94,7 +94,14 @@ const TeamCalendar = () => {
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
+      title: '',
+      description: '',
+      start_time: new Date(),
+      end_time: new Date(),
       event_type: 'meeting',
+      assigned_to: '',
+      location: '',
+      hours: undefined,
     },
   });
 

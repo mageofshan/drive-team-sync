@@ -47,7 +47,12 @@ const Index = () => {
   const taskForm = useForm<z.infer<typeof taskFormSchema>>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
+      title: '',
+      description: '',
+      assigned_to: '',
+      due_date: undefined,
       priority: 'medium',
+      estimated_hours: undefined,
     },
   });
 
