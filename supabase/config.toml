@@ -1,1 +1,55 @@
 project_id = "ypehsnksliyiztgjmvfc"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+port = 54327
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+port = 54328
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_signup = true
+enable_email_confirmations = false
+enable_email_autoconfirm = false
+enable_phone_confirmations = false
+enable_phone_autoconfirm = false
+
+[edge-runtime]
+enabled = true
+port = 54329
+
+[analytics]
+enabled = false
+port = 54327
+vector_port = 54328
+# Setup analytics only if you have the proper environment setup
+
+[functions]
+enabled = true
+verify_jwt = true
+
+[functions.first-events]
+verify_jwt = false

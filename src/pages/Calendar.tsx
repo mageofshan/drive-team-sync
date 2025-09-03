@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
+import { FirstEventModal } from '@/components/FirstEventModal';
 import { 
   Plus, 
   Filter, 
@@ -30,7 +31,8 @@ import {
   Users,
   CheckCircle2,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
@@ -90,6 +92,7 @@ const TeamCalendar = () => {
   const [memberFilter, setMemberFilter] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventData | null>(null);
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
+  const [isFirstEventModalOpen, setIsFirstEventModalOpen] = useState(false);
 
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
@@ -288,6 +291,22 @@ const TeamCalendar = () => {
     }
   };
 
+  const handleFirstEventSelect = (firstEvent: any) => {
+    // Auto-fill form with FIRST event data
+    const startDate = new Date(firstEvent.dateStart);
+    const endDate = new Date(firstEvent.dateEnd);
+    
+    form.setValue('title', firstEvent.name);
+    form.setValue('description', `${firstEvent.type} Event${firstEvent.districtCode ? ` - District ${firstEvent.districtCode}` : ''}`);
+    form.setValue('start_time', startDate);
+    form.setValue('end_time', endDate);
+    form.setValue('location', firstEvent.address || '');
+    form.setValue('event_type', 'competition');
+    
+    setIsFirstEventModalOpen(false);
+    setIsCreateOpen(true);
+  };
+
   const handleSelectSlot = useCallback(({ start, end }: { start: Date; end: Date }) => {
     setSelectedSlot({ start, end });
     form.setValue('start_time', start);
@@ -436,13 +455,26 @@ const TeamCalendar = () => {
                   Collaborative scheduling and event management
                 </p>
               </div>
+              <div className="flex gap-2">
+                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-first-blue to-first-red text-white shadow-glow">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Event
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsFirstEventModalOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Add FIRST Event
+                </Button>
+              </div>
+              
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-first-blue to-first-red text-white shadow-glow">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Event
-                  </Button>
-                </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Create New Event</DialogTitle>
@@ -929,6 +961,12 @@ const TeamCalendar = () => {
               )}
             </DialogContent>
           </Dialog>
+
+          <FirstEventModal
+            isOpen={isFirstEventModalOpen}
+            onClose={() => setIsFirstEventModalOpen(false)}
+            onEventSelect={handleFirstEventSelect}
+          />
         </main>
       </div>
     </ProtectedRoute>
