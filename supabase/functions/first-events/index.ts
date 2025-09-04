@@ -25,7 +25,22 @@ serve(async (req) => {
   }
 
   try {
-    const { season, search, eventType, district, startDate, endDate } = await req.json();
+    let season, search, eventType, district, startDate, endDate;
+    
+    // Handle cases where request body might be empty or invalid
+    try {
+      const body = await req.json();
+      ({ season, search, eventType, district, startDate, endDate } = body);
+    } catch (jsonError) {
+      console.log('No JSON body provided, using default values');
+      // Use defaults if no body is provided
+      season = undefined;
+      search = undefined;
+      eventType = undefined;
+      district = undefined;
+      startDate = undefined;
+      endDate = undefined;
+    }
     
     // Default to current season if not provided
     const currentSeason = season || new Date().getFullYear();
