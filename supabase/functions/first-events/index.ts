@@ -51,16 +51,22 @@ serve(async (req) => {
     const credentials = btoa(`${username}:${authToken}`);
     
     const baseUrl = 'https://frc-api.firstinspires.org';
-    let apiUrl = `${baseUrl}/api/v3.0/${currentSeason}/events`;
+    let apiUrl = `${baseUrl}/v3.0/${currentSeason}/events`;
     
     console.log(`Fetching events from: ${apiUrl}`);
     
-    const response = await fetch(apiUrl, {
-      headers: {
-        'Authorization': `Basic ${credentials}`,
-        'Accept': 'application/json',
-      },
-    });
+    // Create headers using Headers constructor as per FIRST API documentation
+    const myHeaders = new Headers();
+    myHeaders.append("Authorization", `Basic ${credentials}`);
+    myHeaders.append("If-Modified-Since", "");
+    
+    const requestOptions = {
+      method: 'GET',
+      headers: myHeaders,
+      redirect: 'follow' as RequestRedirect
+    };
+    
+    const response = await fetch(apiUrl, requestOptions);
 
     if (!response.ok) {
       console.error(`API Error: ${response.status} - ${response.statusText}`);
