@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useTeamStatus } from '@/hooks/useTeamStatus';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -8,14 +9,19 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { hasTeam, loading: teamLoading } = useTeamStatus();
   const navigate = useNavigate();
+  
+  const loading = authLoading || teamLoading;
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate('/auth');
+    } else if (!loading && user && !hasTeam) {
+      navigate('/team-setup');
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, hasTeam, loading, navigate]);
 
   if (loading) {
     return (

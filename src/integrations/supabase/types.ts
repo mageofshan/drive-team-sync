@@ -436,6 +436,7 @@ export type Database = {
           dietary_restrictions: string | null
           email: string | null
           emergency_contact: string | null
+          expertise: Database["public"]["Enums"]["user_expertise"][] | null
           first_name: string | null
           id: string
           last_name: string | null
@@ -451,6 +452,7 @@ export type Database = {
           dietary_restrictions?: string | null
           email?: string | null
           emergency_contact?: string | null
+          expertise?: Database["public"]["Enums"]["user_expertise"][] | null
           first_name?: string | null
           id?: string
           last_name?: string | null
@@ -466,6 +468,7 @@ export type Database = {
           dietary_restrictions?: string | null
           email?: string | null
           emergency_contact?: string | null
+          expertise?: Database["public"]["Enums"]["user_expertise"][] | null
           first_name?: string | null
           id?: string
           last_name?: string | null
@@ -561,24 +564,33 @@ export type Database = {
       teams: {
         Row: {
           created_at: string
+          description: string | null
+          first_region: string | null
           id: string
           invite_code: string
+          max_members: number | null
           name: string
           team_number: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          description?: string | null
+          first_region?: string | null
           id?: string
           invite_code?: string
+          max_members?: number | null
           name: string
           team_number?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          description?: string | null
+          first_region?: string | null
           id?: string
           invite_code?: string
+          max_members?: number | null
           name?: string
           team_number?: number | null
           updated_at?: string
@@ -590,9 +602,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_team_exists_by_number: {
+        Args: { p_team_number: number }
+        Returns: boolean
+      }
       get_current_user_team_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_user_team_count: {
+        Args: { p_user_id: string }
+        Returns: number
       }
     }
     Enums: {
@@ -621,6 +641,14 @@ export type Database = {
         | "general"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "review" | "done"
+      user_expertise:
+        | "mechanical"
+        | "electrical"
+        | "programming"
+        | "outreach"
+        | "business"
+        | "media"
+        | "strategy"
       user_role:
         | "admin"
         | "code_lead"
@@ -779,6 +807,15 @@ export const Constants = {
       resource_category: ["cad", "code", "mechanical", "electrical", "general"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["todo", "in_progress", "review", "done"],
+      user_expertise: [
+        "mechanical",
+        "electrical",
+        "programming",
+        "outreach",
+        "business",
+        "media",
+        "strategy",
+      ],
       user_role: [
         "admin",
         "code_lead",

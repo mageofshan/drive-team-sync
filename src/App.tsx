@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import TeamSetup from "./components/TeamSetup";
+import TeamInfo from "./pages/TeamInfo";
 import Tasks from "./pages/Tasks";
 import Calendar from "./pages/Calendar";
 import Transportation from "./pages/Transportation";
@@ -25,6 +27,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/team-setup" element={<TeamSetup />} />
+            <Route path="/team-info" element={<TeamInfo />} />
             <Route path="/team" element={<Team />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/calendar" element={<Calendar />} />
