@@ -12,6 +12,7 @@ import { Users, MapPin, Trophy } from "lucide-react";
 interface TeamData {
   id: string;
   name: string;
+  organization: 'FRC' | 'FTC';
   team_number: number;
   first_region: string;
   description: string;
@@ -83,10 +84,10 @@ const TeamInfo = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-first-gold" />
-                    Team {teamData.team_number} - {teamData.name}
+                    {teamData.organization} Team {teamData.team_number} - {teamData.name}
                   </CardTitle>
                   <CardDescription>
-                    FIRST Robotics Competition Team
+                    {teamData.organization === 'FRC' ? 'FIRST Robotics Competition' : 'FIRST Tech Challenge'} Team
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

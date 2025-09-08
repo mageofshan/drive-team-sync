@@ -566,10 +566,12 @@ export type Database = {
           created_at: string
           description: string | null
           first_region: string | null
+          first_region: string | null
           id: string
           invite_code: string
           max_members: number | null
           name: string
+          organization: Database["public"]["Enums"]["first_organization"]
           team_number: number | null
           updated_at: string
         }
@@ -577,10 +579,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           first_region?: string | null
+          first_region?: string | null
           id?: string
           invite_code?: string
           max_members?: number | null
           name: string
+          organization: Database["public"]["Enums"]["first_organization"]
           team_number?: number | null
           updated_at?: string
         }
@@ -588,10 +592,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           first_region?: string | null
+          first_region?: string | null
           id?: string
           invite_code?: string
           max_members?: number | null
           name?: string
+          organization?: Database["public"]["Enums"]["first_organization"]
           team_number?: number | null
           updated_at?: string
         }
@@ -826,6 +832,8 @@ export const Constants = {
         "student",
         "mentor",
       ],
+      first_organization: ["FRC", "FTC"],
+      first_organization: ["FRC", "FTC"],
     },
   },
 } as const

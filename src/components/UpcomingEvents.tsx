@@ -64,7 +64,20 @@ const UpcomingEvents = () => {
   const fetchFirstEvents = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('first-events', {
+      // Get user's team organization to determine which API to call
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select(`
+          team_id,
+          teams!inner(organization)
+        `)
+        .eq('user_id', user!.id)
+        .single();
+
+      const organization = userProfile?.teams?.organization || 'FRC';
+      const functionName = organization === 'FRC' ? 'first-events' : 'ftc-events';
+
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           season: new Date().getFullYear(),
           startDate: new Date().toISOString().split('T')[0], // Today
@@ -76,16 +89,27 @@ const UpcomingEvents = () => {
       }
 
       // Get next 5 upcoming events
-      const upcomingEvents = (data.events || [])
-        .filter((event: FirstEvent) => new Date(event.dateStart) >= new Date())
-        .slice(0, 5);
+      let upcomingEvents;
+      if (organization === 'FRC') {
+        upcomingEvents = (data.events || [])
+          .filter((event: FirstEvent) => new Date(event.dateStart) >= new Date())
+          .slice(0, 5);
+      } else {
+        upcomingEvents = (data.events || [])
+          .filter((event: FtcEvent) => event.dateStart ? new Date(event.dateStart) > new Date() : true)
+          .slice(0, 5);
+      }
       
-      setFirstEvents(upcomingEvents);
+      if (organization === 'FRC') {
+        setFirstEvents(upcomingEvents);
+      } else {
+        setFtcEvents(upcomingEvents);
+      }
     } catch (error) {
       console.error('Error fetching FRC events:', error);
       toast({
         title: 'Warning',
-        description: 'Could not fetch FRC events. Showing team events only.',
+        description: 'Could not fetch FIRST events. Showing team events only.',
         variant: 'destructive',
       });
     } finally {
@@ -94,34 +118,13 @@ const UpcomingEvents = () => {
   };
 
   const fetchFtcEvents = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('ftc-events', {
-        body: {
-          season: new Date().getFullYear()
-        }
-      });
-
-      if (error) {
-        console.error('Error fetching FTC events:', error);
-        return;
-      }
-
-      // Filter and get next 5 upcoming events (FTC events might not have dates)
-      const upcomingEvents = (data?.events || [])
-        .filter((event: FtcEvent) => event.dateStart ? new Date(event.dateStart) > new Date() : true)
-        .slice(0, 5);
-      
-      setFtcEvents(upcomingEvents);
-    } catch (error) {
-      console.error('Error fetching FTC events:', error);
-    }
+    // This is now handled in fetchFirstEvents based on organization
   };
 
   useEffect(() => {
     if (user) {
       fetchUpcomingEvents();
       fetchFirstEvents();
-      fetchFtcEvents();
     }
   }, [user]);
 

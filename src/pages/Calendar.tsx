@@ -93,6 +93,7 @@ const TeamCalendar = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventData | null>(null);
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
   const [isFirstEventModalOpen, setIsFirstEventModalOpen] = useState(false);
+  const [userOrganization, setUserOrganization] = useState<'FRC' | 'FTC'>('FRC');
 
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
@@ -110,6 +111,7 @@ const TeamCalendar = () => {
 
   useEffect(() => {
     if (user) {
+      fetchUserOrganization();
       fetchEvents();
       fetchTasks();
       fetchTeamMembers();
@@ -147,6 +149,25 @@ const TeamCalendar = () => {
     return () => {
       supabase.removeChannel(eventsChannel);
     };
+  };
+
+  const fetchUserOrganization = async () => {
+    try {
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select(`
+          team_id,
+          teams!inner(organization)
+        `)
+        .eq('user_id', user!.id)
+        .single();
+
+      if (userProfile?.teams) {
+        setUserOrganization((userProfile.teams as any).organization || 'FRC');
+      }
+    } catch (error) {
+      console.error('Error fetching user organization:', error);
+    }
   };
 
   const fetchEvents = async () => {
@@ -966,6 +987,7 @@ const TeamCalendar = () => {
             isOpen={isFirstEventModalOpen}
             onClose={() => setIsFirstEventModalOpen(false)}
             onEventSelect={handleFirstEventSelect}
+            organization={userOrganization}
           />
         </main>
       </div>

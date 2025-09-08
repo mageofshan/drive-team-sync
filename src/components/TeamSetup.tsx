@@ -30,6 +30,21 @@ const FIRST_REGIONS = [
   'Others'
 ];
 
+const FTC_REGIONS = [
+  'FIRST Tech Challenge California',
+  'FIRST Tech Challenge Texas',
+  'FIRST Tech Challenge Florida',
+  'FIRST Tech Challenge New York',
+  'FIRST Tech Challenge Michigan',
+  'FIRST Tech Challenge Ohio',
+  'FIRST Tech Challenge Pennsylvania',
+  'FIRST Tech Challenge North Carolina',
+  'FIRST Tech Challenge Virginia',
+  'FIRST Tech Challenge Washington',
+  'FIRST Tech Challenge International',
+  'Others'
+];
+
 const EXPERTISE_OPTIONS = [
   { id: 'mechanical', label: 'Mechanical Engineering' },
   { id: 'electrical', label: 'Electrical Engineering' },
@@ -49,6 +64,7 @@ export default function TeamSetup() {
 
   // Create team form state
   const [createForm, setCreateForm] = useState({
+    organization: 'FRC' as 'FRC' | 'FTC',
     teamNumber: '',
     teamName: '',
     firstRegion: '',
@@ -82,12 +98,15 @@ export default function TeamSetup() {
 
   const validateTeamNumber = (teamNumber: string) => {
     const num = parseInt(teamNumber);
-    return !isNaN(num) && num >= 1 && num <= 9999;
+    return !isNaN(num) && num >= 1 && num <= 99999;
   };
 
-  const checkTeamNumberExists = async (teamNumber: string) => {
+  const checkTeamNumberExists = async (teamNumber: string, organization: 'FRC' | 'FTC') => {
     const { data, error } = await supabase
-      .rpc('check_team_exists_by_number', { p_team_number: parseInt(teamNumber) });
+      .rpc('check_team_exists_by_number', { 
+        p_team_number: parseInt(teamNumber),
+        p_organization: organization
+      });
     
     if (error) {
       console.error('Error checking team number:', error);
@@ -107,18 +126,18 @@ export default function TeamSetup() {
       if (!validateTeamNumber(createForm.teamNumber)) {
         toast({
           title: 'Invalid Team Number',
-          description: 'Team number must be between 1 and 9999.',
+          description: 'Team number must be between 1 and 99999.',
           variant: 'destructive'
         });
         return;
       }
 
       // Check if team number already exists
-      const teamExists = await checkTeamNumberExists(createForm.teamNumber);
+      const teamExists = await checkTeamNumberExists(createForm.teamNumber, createForm.organization);
       if (teamExists) {
         toast({
           title: 'Team Already Exists',
-          description: `Team ${createForm.teamNumber} is already registered in the app.`,
+          description: `${createForm.organization} Team ${createForm.teamNumber} is already registered in the app.`,
           variant: 'destructive'
         });
         return;
@@ -128,6 +147,7 @@ export default function TeamSetup() {
       const { data: team, error: teamError } = await supabase
         .from('teams')
         .insert({
+          organization: createForm.organization,
           team_number: parseInt(createForm.teamNumber),
           name: createForm.teamName,
           first_region: createForm.firstRegion,
@@ -245,14 +265,27 @@ export default function TeamSetup() {
 
             <TabsContent value="create" className="space-y-6 mt-6">
               <form onSubmit={handleCreateTeam} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="organization">FIRST Organization *</Label>
+                  <Select value={createForm.organization} onValueChange={(value: 'FRC' | 'FTC') => setCreateForm(prev => ({ ...prev, organization: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FRC">FRC (FIRST Robotics Competition)</SelectItem>
+                      <SelectItem value="FTC">FTC (FIRST Tech Challenge)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="teamNumber">FRC Team Number *</Label>
+                    <Label htmlFor="teamNumber">{createForm.organization} Team Number *</Label>
                     <Input
                       id="teamNumber"
                       type="number"
                       min="1"
-                      max="9999"
+                      max="99999"
                       value={createForm.teamNumber}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, teamNumber: e.target.value }))}
                       placeholder="1234"
@@ -261,12 +294,15 @@ export default function TeamSetup() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="firstRegion">FIRST Region *</Label>
-                    <Select value={createForm.firstRegion} onValueChange={(value) => setCreateForm(prev => ({ ...prev, firstRegion: value }))}>
+                    <Select 
+                      value={createForm.firstRegion} 
+                      onValueChange={(value) => setCreateForm(prev => ({ ...prev, firstRegion: value }))}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select your region" />
                       </SelectTrigger>
                       <SelectContent>
-                        {FIRST_REGIONS.map((region) => (
+                        {(createForm.organization === 'FRC' ? FIRST_REGIONS : FTC_REGIONS).map((region) => (
                           <SelectItem key={region} value={region}>
                             {region}
                           </SelectItem>
@@ -319,7 +355,7 @@ export default function TeamSetup() {
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={loading || !createForm.teamNumber || !createForm.teamName || !createForm.firstRegion || createForm.expertise.length === 0}
+                  disabled={loading || !createForm.organization || !createForm.teamNumber || !createForm.teamName || !createForm.firstRegion || createForm.expertise.length === 0}
                 >
                   {loading ? 'Creating Team...' : 'Create Team'}
                 </Button>

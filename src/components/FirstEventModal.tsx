@@ -59,10 +59,11 @@ interface FirstEventModalProps {
   onClose: () => void;
   onEventSelect: (event: FirstEvent | FtcEvent) => void;
   season?: number;
+  organization?: 'FRC' | 'FTC';
 }
 
-export function FirstEventModal({ isOpen, onClose, onEventSelect, season }: FirstEventModalProps) {
-  const [activeTab, setActiveTab] = useState("frc");
+export function FirstEventModal({ isOpen, onClose, onEventSelect, season, organization = 'FRC' }: FirstEventModalProps) {
+  const [activeTab, setActiveTab] = useState(organization.toLowerCase());
   const [frcEvents, setFrcEvents] = useState<FirstEvent[]>([]);
   const [ftcEvents, setFtcEvents] = useState<FtcEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -220,10 +221,15 @@ export function FirstEventModal({ isOpen, onClose, onEventSelect, season }: Firs
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="frc">FRC Events</TabsTrigger>
-            <TabsTrigger value="ftc">FTC Events</TabsTrigger>
-          </TabsList>
+          {organization === 'FRC' ? (
+            <TabsList className="grid w-full grid-cols-1">
+              <TabsTrigger value="frc">FRC Events</TabsTrigger>
+            </TabsList>
+          ) : (
+            <TabsList className="grid w-full grid-cols-1">
+              <TabsTrigger value="ftc">FTC Events</TabsTrigger>
+            </TabsList>
+          )}
 
           <div className="mt-4 space-y-4">
             <div className="flex flex-col sm:flex-row gap-2">
@@ -238,7 +244,8 @@ export function FirstEventModal({ isOpen, onClose, onEventSelect, season }: Firs
               </Button>
             </div>
 
-            <TabsContent value="frc" className="mt-0">
+            {organization === 'FRC' && (
+              <TabsContent value="frc" className="mt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
                 <Select value={eventType} onValueChange={setEventType}>
                   <SelectTrigger>
@@ -344,9 +351,11 @@ export function FirstEventModal({ isOpen, onClose, onEventSelect, season }: Firs
                   ))
                 )}
               </div>
-            </TabsContent>
+              </TabsContent>
+            )}
 
-            <TabsContent value="ftc" className="mt-0">
+            {organization === 'FTC' && (
+              <TabsContent value="ftc" className="mt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
                 <Select value={eventType} onValueChange={setEventType}>
                   <SelectTrigger>
@@ -477,7 +486,8 @@ export function FirstEventModal({ isOpen, onClose, onEventSelect, season }: Firs
                   ))
                 )}
               </div>
-            </TabsContent>
+              </TabsContent>
+            )}
           </div>
         </Tabs>
       </DialogContent>
