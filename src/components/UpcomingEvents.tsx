@@ -35,11 +35,30 @@ interface FirstEvent {
   webcasts?: Array<{ type: string; channel: string; file?: string }>;
 }
 
+interface FtcEvent {
+  eventId: string;
+  code: string;
+  name: string;
+  type: string;
+  typeName?: string;
+  dateStart?: string;
+  dateEnd?: string;
+  address?: string;
+  city?: string;
+  stateprov?: string;
+  venue?: string;
+  website?: string;
+  regionCode?: string;
+  hybrid?: boolean;
+  remote?: boolean;
+}
+
 const UpcomingEvents = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [firstEvents, setFirstEvents] = useState<FirstEvent[]>([]);
+  const [ftcEvents, setFtcEvents] = useState<FtcEvent[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchFirstEvents = async () => {
@@ -63,10 +82,10 @@ const UpcomingEvents = () => {
       
       setFirstEvents(upcomingEvents);
     } catch (error) {
-      console.error('Error fetching FIRST events:', error);
+      console.error('Error fetching FRC events:', error);
       toast({
         title: 'Warning',
-        description: 'Could not fetch FIRST events. Showing team events only.',
+        description: 'Could not fetch FRC events. Showing team events only.',
         variant: 'destructive',
       });
     } finally {
@@ -74,10 +93,35 @@ const UpcomingEvents = () => {
     }
   };
 
+  const fetchFtcEvents = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('ftc-events', {
+        body: {
+          season: new Date().getFullYear()
+        }
+      });
+
+      if (error) {
+        console.error('Error fetching FTC events:', error);
+        return;
+      }
+
+      // Filter and get next 5 upcoming events (FTC events might not have dates)
+      const upcomingEvents = (data?.events || [])
+        .filter((event: FtcEvent) => event.dateStart ? new Date(event.dateStart) > new Date() : true)
+        .slice(0, 5);
+      
+      setFtcEvents(upcomingEvents);
+    } catch (error) {
+      console.error('Error fetching FTC events:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchUpcomingEvents();
       fetchFirstEvents();
+      fetchFtcEvents();
     }
   }, [user]);
 
@@ -215,11 +259,11 @@ const UpcomingEvents = () => {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* FIRST Official Events */}
+        {/* FRC Official Events */}
         {firstEvents.length > 0 && (
           <div className="space-y-3">
             <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide border-b pb-2">
-              Official FIRST Events
+              Official FRC Events
             </h4>
             {firstEvents.map((event) => (
               <div key={event.code} className="border rounded-lg p-4 space-y-3 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
@@ -247,6 +291,75 @@ const UpcomingEvents = () => {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
                     {event.address}
+                  </div>
+                )}
+                
+                <div className="flex gap-2 pt-2">
+                  {event.website && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={event.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                        <Globe className="h-3 w-3" />
+                        Website
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline">
+                    Add to Calendar
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    Plan Transportation
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* FTC Official Events */}
+        {ftcEvents.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide border-b pb-2">
+              Official FTC Events
+            </h4>
+            {ftcEvents.map((event) => (
+              <div key={event.eventId || event.code} className="border rounded-lg p-4 space-y-3 bg-gradient-to-r from-green-50/50 to-blue-50/50 dark:from-green-950/20 dark:to-blue-950/20">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-lg">{event.name}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                      {event.dateStart && event.dateEnd ? (
+                        <>
+                          <Calendar className="h-4 w-4" />
+                          {format(new Date(event.dateStart), 'MMM d')} - {format(new Date(event.dateEnd), 'MMM d')}
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Event details TBA</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge className={getFirstEventTypeColor(event.type)}>
+                      {event.typeName || event.type}
+                    </Badge>
+                    {event.regionCode && (
+                      <Badge variant="outline">
+                        {event.regionCode}
+                      </Badge>
+                    )}
+                    {event.hybrid && (
+                      <Badge variant="outline">Hybrid</Badge>
+                    )}
+                    {event.remote && (
+                      <Badge variant="outline">Remote</Badge>
+                    )}
+                  </div>
+                </div>
+                
+                {(event.address || event.city || event.venue) && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    {event.address || [event.venue, event.city, event.stateprov].filter(Boolean).join(', ')}
                   </div>
                 )}
                 
@@ -320,7 +433,7 @@ const UpcomingEvents = () => {
           </div>
         )}
         
-        {events.length === 0 && firstEvents.length === 0 && !loading && (
+        {events.length === 0 && firstEvents.length === 0 && ftcEvents.length === 0 && !loading && (
           <p className="text-muted-foreground text-center py-4">
             No upcoming events found.
           </p>
@@ -328,7 +441,7 @@ const UpcomingEvents = () => {
 
         {loading && (
           <p className="text-muted-foreground text-center py-4">
-            Loading FIRST events...
+            Loading events...
           </p>
         )}
       </CardContent>
