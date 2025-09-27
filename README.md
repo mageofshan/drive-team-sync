@@ -1,18 +1,20 @@
-# Welcome to your Lovable project
+**Drive Team Sync**
 
-## Project info
+Drive team Sync is an all-in-one platform designed to help FIRST Robotics teams organize, collaborate, and stay on track throughout the season.
 
-**URL**: https://lovable.dev/projects/da0c8d02-8068-4972-b970-76099651d704
+**Features**
 
-## How can I edit this code?
+- User & Team Management: Create or join a team, assign roles like Code Lead, Mechanical Lead, or Electrical Lead.
+- Interactive Calendar: Plan meetings, competitions, and events with RSVPs and reminders.
+- Transportation Hub: Volunteer to drive, offer seats, request rides, and join carpools.
+- Attendance Tracking: Record attendance, mark absences/sick days, and export reports.
+- Budgeting Tools: Track expenses, sponsorships, and donations with a clear balance dashboard.
+- Task Planner: Assign and manage tasks in daily, weekly, or calendar views to ensure accountability.
+- Extras: Real-time updates, file storage, and notifications
 
-There are several waysiting your application.
+**Vision**
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/da0c8d02-8068-4972-b970-76099651d704) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
+Our goal is to streamline robotics team management by centralizing planning, communication, and accountability—so teams can focus more on building robots and less on managing logistics. Help me achieve this goal! Pull this repo and test it out yourself! Write some issues, create some ideas, make this app a better one!
 
 **Use your preferred IDE**
 
@@ -59,15 +61,3 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/da0c8d02-8068-4972-b970-76099651d704) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
