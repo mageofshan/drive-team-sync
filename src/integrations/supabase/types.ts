@@ -606,7 +606,7 @@ export type Database = {
     }
     Functions: {
       check_team_exists_by_number: {
-        Args: { p_team_number: number }
+        Args: { p_organization?: string; p_team_number: number }
         Returns: boolean
       }
       get_current_user_team_id: {

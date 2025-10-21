@@ -47,6 +47,7 @@ const TeamInfo = () => {
 
         setTeamData({
           ...team,
+          organization: team.organization as 'FRC' | 'FTC',
           member_count: memberCount || 0
         });
       } catch (error) {
