@@ -82,14 +82,14 @@ export default function TeamSetup() {
     if (isCreateForm) {
       setCreateForm(prev => ({
         ...prev,
-        expertise: checked 
+        expertise: checked
           ? [...prev.expertise, expertiseId]
           : prev.expertise.filter(e => e !== expertiseId)
       }));
     } else {
       setJoinForm(prev => ({
         ...prev,
-        expertise: checked 
+        expertise: checked
           ? [...prev.expertise, expertiseId]
           : prev.expertise.filter(e => e !== expertiseId)
       }));
@@ -103,16 +103,16 @@ export default function TeamSetup() {
 
   const checkTeamNumberExists = async (teamNumber: string, organization: 'FRC' | 'FTC') => {
     const { data, error } = await supabase
-      .rpc('check_team_exists_by_number', { 
+      .rpc('check_team_exists_by_number', {
         p_team_number: parseInt(teamNumber),
         p_organization: organization
       });
-    
+
     if (error) {
       console.error('Error checking team number:', error);
       return false;
     }
-    
+
     return data;
   };
 
@@ -151,7 +151,8 @@ export default function TeamSetup() {
           team_number: parseInt(createForm.teamNumber),
           name: createForm.teamName,
           first_region: createForm.firstRegion,
-          description: createForm.description
+          description: createForm.description,
+          created_by: user.id
         })
         .select()
         .single();
@@ -294,8 +295,8 @@ export default function TeamSetup() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="firstRegion">FIRST Region *</Label>
-                    <Select 
-                      value={createForm.firstRegion} 
+                    <Select
+                      value={createForm.firstRegion}
                       onValueChange={(value) => setCreateForm(prev => ({ ...prev, firstRegion: value }))}
                     >
                       <SelectTrigger>
@@ -352,9 +353,9 @@ export default function TeamSetup() {
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={loading || !createForm.organization || !createForm.teamNumber || !createForm.teamName || !createForm.firstRegion || createForm.expertise.length === 0}
                 >
                   {loading ? 'Creating Team...' : 'Create Team'}
@@ -396,9 +397,9 @@ export default function TeamSetup() {
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={loading || !joinForm.inviteCode.trim() || joinForm.expertise.length === 0}
                 >
                   {loading ? 'Joining Team...' : 'Join Team'}

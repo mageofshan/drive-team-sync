@@ -39,90 +39,115 @@ const RecentActivity = () => {
       const recentActivities: Activity[] = [];
 
       // Fetch recent task completions
+      // Fetch recent task completions
       const { data: recentTasks } = await supabase
         .from('tasks')
-        .select(`
-          id, title, updated_at, status,
-          profiles!tasks_assigned_to_fkey(first_name, last_name)
-        `)
+        .select('id, title, updated_at, status, assigned_to')
         .eq('team_id', userProfile.team_id)
         .eq('status', 'done')
         .order('updated_at', { ascending: false })
         .limit(3);
 
-      recentTasks?.forEach(task => {
-        if (task.profiles) {
-          const profile = task.profiles as any;
-          const firstName = profile.first_name || '';
-          const lastName = profile.last_name || '';
+      if (recentTasks && recentTasks.length > 0) {
+        // Fetch profiles for the tasks
+        const userIds = Array.from(new Set(recentTasks.map(t => t.assigned_to).filter(Boolean)));
+
+        const { data: taskProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', userIds);
+
+        const profilesMap = new Map(taskProfiles?.map(p => [p.user_id, p]));
+
+        recentTasks.forEach(task => {
+          const profile = task.assigned_to ? profilesMap.get(task.assigned_to) : null;
+          const firstName = profile?.first_name || '';
+          const lastName = profile?.last_name || '';
+
           recentActivities.push({
             id: task.id,
             user: `${firstName} ${lastName}`.trim() || 'Unknown User',
-            initials: `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || 'UN',
+            initials: `${firstName.charAt(0) || ''}${lastName.charAt(0) || ''}`.toUpperCase() || 'UN',
             action: 'completed task',
             target: task.title,
             time: getTimeAgo(task.updated_at),
             type: 'task'
           });
-        }
-      });
+        });
+      }
 
+      // Fetch recent expenses
       // Fetch recent expenses
       const { data: recentExpenses } = await supabase
         .from('finances')
-        .select(`
-          id, description, amount, created_at,
-          profiles!finances_created_by_fkey(first_name, last_name)
-        `)
+        .select('id, description, amount, created_at, created_by')
         .eq('team_id', userProfile.team_id)
         .eq('type', 'expense')
         .order('created_at', { ascending: false })
         .limit(2);
 
-      recentExpenses?.forEach(expense => {
-        if (expense.profiles) {
-          const profile = expense.profiles as any;
-          const firstName = profile.first_name || '';
-          const lastName = profile.last_name || '';
+      if (recentExpenses && recentExpenses.length > 0) {
+        const userIds = Array.from(new Set(recentExpenses.map(e => e.created_by).filter(Boolean)));
+
+        const { data: expenseProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', userIds);
+
+        const profilesMap = new Map(expenseProfiles?.map(p => [p.user_id, p]));
+
+        recentExpenses.forEach(expense => {
+          const profile = expense.created_by ? profilesMap.get(expense.created_by) : null;
+          const firstName = profile?.first_name || '';
+          const lastName = profile?.last_name || '';
+
           recentActivities.push({
             id: expense.id,
             user: `${firstName} ${lastName}`.trim() || 'Unknown User',
-            initials: `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || 'UN',
+            initials: `${firstName.charAt(0) || ''}${lastName.charAt(0) || ''}`.toUpperCase() || 'UN',
             action: 'added expense',
             target: `$${Number(expense.amount).toLocaleString()} for ${expense.description}`,
             time: getTimeAgo(expense.created_at),
             type: 'budget'
           });
-        }
-      });
+        });
+      }
 
+      // Fetch recent events
       // Fetch recent events
       const { data: recentEvents } = await supabase
         .from('events')
-        .select(`
-          id, title, created_at,
-          profiles!events_created_by_fkey(first_name, last_name)
-        `)
+        .select('id, title, created_at, created_by')
         .eq('team_id', userProfile.team_id)
         .order('created_at', { ascending: false })
         .limit(2);
 
-      recentEvents?.forEach(event => {
-        if (event.profiles) {
-          const profile = event.profiles as any;
-          const firstName = profile.first_name || '';
-          const lastName = profile.last_name || '';
+      if (recentEvents && recentEvents.length > 0) {
+        const userIds = Array.from(new Set(recentEvents.map(e => e.created_by).filter(Boolean)));
+
+        const { data: eventProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', userIds);
+
+        const profilesMap = new Map(eventProfiles?.map(p => [p.user_id, p]));
+
+        recentEvents.forEach(event => {
+          const profile = event.created_by ? profilesMap.get(event.created_by) : null;
+          const firstName = profile?.first_name || '';
+          const lastName = profile?.last_name || '';
+
           recentActivities.push({
             id: event.id,
             user: `${firstName} ${lastName}`.trim() || 'Unknown User',
-            initials: `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || 'UN',
+            initials: `${firstName.charAt(0) || ''}${lastName.charAt(0) || ''}`.toUpperCase() || 'UN',
             action: 'scheduled event',
             target: event.title,
             time: getTimeAgo(event.created_at),
             type: 'calendar'
           });
-        }
-      });
+        });
+      }
 
       // Sort all activities by time and take top 5
       recentActivities.sort((a, b) => {
@@ -140,7 +165,7 @@ const RecentActivity = () => {
     const now = new Date();
     const date = new Date(dateString);
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 60) {
       return `${diffInMinutes} minutes ago`;
     } else if (diffInMinutes < 1440) {

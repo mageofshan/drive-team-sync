@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Bus, Users, Clock, MapPin, Plus, UserPlus, UserMinus, CalendarDays } from 'lucide-react';
+import { Car, Bus, Users, Clock, MapPin, Plus, UserPlus, UserMinus, CalendarDays, Pencil } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { format } from 'date-fns';
 
@@ -61,6 +61,7 @@ const Transportation = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('departure_time');
+  const [editingCarpoolId, setEditingCarpoolId] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -75,7 +76,7 @@ const Transportation = () => {
 
   useEffect(() => {
     fetchData();
-    
+
     // Set up real-time subscription
     const channel = supabase
       .channel('carpools-changes')
@@ -137,24 +138,46 @@ const Transportation = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase.from('carpools').insert({
-        driver_id: user.id,
-        event_id: formData.eventId === 'none' ? null : formData.eventId || null,
-        departure_location: formData.departureLocation,
-        departure_time: formData.departureTime,
-        return_time: formData.returnTime || null,
-        available_seats: formData.availableSeats,
-        notes: formData.notes || null,
-      });
+      if (editingCarpoolId) {
+        const { error } = await supabase
+          .from('carpools')
+          .update({
+            event_id: formData.eventId === 'none' ? null : formData.eventId || null,
+            departure_location: formData.departureLocation,
+            departure_time: formData.departureTime,
+            return_time: formData.returnTime || null,
+            available_seats: formData.availableSeats,
+            notes: formData.notes || null,
+          })
+          .eq('id', editingCarpoolId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Transportation option created successfully",
-      });
+        toast({
+          title: "Success",
+          description: "Transportation option updated successfully",
+        });
+      } else {
+        const { error } = await supabase.from('carpools').insert({
+          driver_id: user.id,
+          event_id: formData.eventId === 'none' ? null : formData.eventId || null,
+          departure_location: formData.departureLocation,
+          departure_time: formData.departureTime,
+          return_time: formData.returnTime || null,
+          available_seats: formData.availableSeats,
+          notes: formData.notes || null,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Transportation option created successfully",
+        });
+      }
 
       setIsCreateOpen(false);
+      setEditingCarpoolId(null);
       setFormData({
         vehicleType: 'car',
         eventId: '',
@@ -166,13 +189,27 @@ const Transportation = () => {
       });
       fetchData();
     } catch (error) {
-      console.error('Error creating carpool:', error);
+      console.error('Error saving carpool:', error);
       toast({
         title: "Error",
-        description: "Failed to create transportation option",
+        description: `Failed to ${editingCarpoolId ? 'update' : 'create'} transportation option`,
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditCarpool = (carpool: Carpool) => {
+    setFormData({
+      vehicleType: carpool.available_seats > 8 ? 'bus' : 'car',
+      eventId: carpool.event_id || '',
+      departureLocation: carpool.departure_location,
+      departureTime: new Date(carpool.departure_time).toISOString().slice(0, 16), // Format for datetime-local input
+      returnTime: carpool.return_time ? new Date(carpool.return_time).toISOString().slice(0, 16) : '',
+      availableSeats: carpool.available_seats,
+      notes: carpool.notes || ''
+    });
+    setEditingCarpoolId(carpool.id);
+    setIsCreateOpen(true);
   };
 
   const joinRide = async (carpoolId: string) => {
@@ -255,7 +292,7 @@ const Transportation = () => {
 
   const getStats = () => {
     const totalRides = carpools.length;
-    const totalSeatsOpen = carpools.reduce((sum, carpool) => 
+    const totalSeatsOpen = carpools.reduce((sum, carpool) =>
       sum + (carpool.available_seats - carpool.riders.length), 0);
     const nextDeparture = carpools
       .filter(carpool => new Date(carpool.departure_time) > new Date())
@@ -269,9 +306,9 @@ const Transportation = () => {
   };
 
   const canJoinRide = (carpool: Carpool) => {
-    return carpool.available_seats > carpool.riders.length && 
-           carpool.driver_id !== user?.id && 
-           !isUserInRide(carpool);
+    return carpool.available_seats > carpool.riders.length &&
+      carpool.driver_id !== user?.id &&
+      !isUserInRide(carpool);
   };
 
   const stats = getStats();
@@ -298,7 +335,21 @@ const Transportation = () => {
             <h1 className="text-3xl font-bold text-foreground">Transportation</h1>
             <p className="text-muted-foreground">Organize carpools and transportation for events</p>
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <Dialog open={isCreateOpen} onOpenChange={(open) => {
+            setIsCreateOpen(open);
+            if (!open) {
+              setEditingCarpoolId(null);
+              setFormData({
+                vehicleType: 'car',
+                eventId: '',
+                departureLocation: '',
+                departureTime: '',
+                returnTime: '',
+                availableSeats: 4,
+                notes: ''
+              });
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
@@ -307,16 +358,16 @@ const Transportation = () => {
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Create Transportation</DialogTitle>
+                <DialogTitle>{editingCarpoolId ? 'Edit Transportation' : 'Create Transportation'}</DialogTitle>
                 <DialogDescription>
-                  Add a new carpool or bus for your team
+                  {editingCarpoolId ? 'Update trip details' : 'Add a new carpool or bus for your team'}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateCarpool} className="space-y-4">
                 <div>
                   <Label htmlFor="vehicleType">Vehicle Type</Label>
-                  <Select value={formData.vehicleType} onValueChange={(value) => 
-                    setFormData({...formData, vehicleType: value, availableSeats: value === 'bus' ? 20 : 4})}>
+                  <Select value={formData.vehicleType} onValueChange={(value) =>
+                    setFormData({ ...formData, vehicleType: value, availableSeats: value === 'bus' ? 20 : 4 })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -329,7 +380,7 @@ const Transportation = () => {
 
                 <div>
                   <Label htmlFor="eventId">Event (Optional)</Label>
-                  <Select value={formData.eventId} onValueChange={(value) => setFormData({...formData, eventId: value})}>
+                  <Select value={formData.eventId} onValueChange={(value) => setFormData({ ...formData, eventId: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select an event" />
                     </SelectTrigger>
@@ -349,7 +400,7 @@ const Transportation = () => {
                   <Input
                     id="departureLocation"
                     value={formData.departureLocation}
-                    onChange={(e) => setFormData({...formData, departureLocation: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, departureLocation: e.target.value })}
                     required
                   />
                 </div>
@@ -360,7 +411,7 @@ const Transportation = () => {
                     id="departureTime"
                     type="datetime-local"
                     value={formData.departureTime}
-                    onChange={(e) => setFormData({...formData, departureTime: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, departureTime: e.target.value })}
                     required
                   />
                 </div>
@@ -371,7 +422,7 @@ const Transportation = () => {
                     id="returnTime"
                     type="datetime-local"
                     value={formData.returnTime}
-                    onChange={(e) => setFormData({...formData, returnTime: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, returnTime: e.target.value })}
                   />
                 </div>
 
@@ -383,7 +434,7 @@ const Transportation = () => {
                     min="1"
                     max="50"
                     value={formData.availableSeats}
-                    onChange={(e) => setFormData({...formData, availableSeats: parseInt(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, availableSeats: parseInt(e.target.value) })}
                     required
                   />
                 </div>
@@ -393,12 +444,14 @@ const Transportation = () => {
                   <Textarea
                     id="notes"
                     value={formData.notes}
-                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     placeholder="Stops, special instructions, etc."
                   />
                 </div>
 
-                <Button type="submit" className="w-full">Create Transportation</Button>
+                <Button type="submit" className="w-full">
+                  {editingCarpoolId ? 'Update Transportation' : 'Create Transportation'}
+                </Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -431,7 +484,7 @@ const Transportation = () => {
             </CardHeader>
             <CardContent>
               <div className="text-sm font-medium">
-                {stats.nextDeparture 
+                {stats.nextDeparture
                   ? format(new Date(stats.nextDeparture.departure_time), 'MMM d, h:mm a')
                   : 'None scheduled'
                 }
@@ -483,14 +536,26 @@ const Transportation = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {React.createElement(vehicleIcon, { 
-                        className: `w-5 h-5 ${carpool.available_seats > 8 ? 'text-blue-600' : 'text-green-600'}` 
+                      {React.createElement(vehicleIcon, {
+                        className: `w-5 h-5 ${carpool.available_seats > 8 ? 'text-blue-600' : 'text-green-600'}`
                       })}
                       <CardTitle className="text-lg">
                         {carpool.available_seats > 8 ? 'Bus' : 'Car'} to {carpool.event?.title || 'Destination'}
                       </CardTitle>
                     </div>
-                    {isDriver && <Badge variant="secondary">Driver</Badge>}
+                    <div className="flex items-center gap-2">
+                      {isDriver && <Badge variant="secondary">Driver</Badge>}
+                      {isDriver && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleEditCarpool(carpool)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <CardDescription className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
@@ -546,9 +611,9 @@ const Transportation = () => {
 
                   <div className="flex gap-2 pt-2">
                     {canJoinRide(carpool) && (
-                      <Button 
-                        onClick={() => joinRide(carpool.id)} 
-                        size="sm" 
+                      <Button
+                        onClick={() => joinRide(carpool.id)}
+                        size="sm"
                         className="flex-1"
                       >
                         <UserPlus className="w-4 h-4 mr-1" />
@@ -556,10 +621,10 @@ const Transportation = () => {
                       </Button>
                     )}
                     {isUserInRide(carpool) && !isDriver && (
-                      <Button 
-                        onClick={() => leaveRide(carpool.id)} 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        onClick={() => leaveRide(carpool.id)}
+                        variant="outline"
+                        size="sm"
                         className="flex-1"
                       >
                         <UserMinus className="w-4 h-4 mr-1" />
@@ -590,7 +655,7 @@ const Transportation = () => {
           </Card>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

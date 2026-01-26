@@ -67,14 +67,22 @@ const UpcomingEvents = () => {
       // Get user's team organization to determine which API to call
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select(`
-          team_id,
-          teams!inner(organization)
-        `)
+        .select('team_id')
         .eq('user_id', user!.id)
         .single();
 
-      const organization = userProfile?.teams?.organization || 'FRC';
+      let organization = 'FRC';
+      if (userProfile?.team_id) {
+        const { data: team } = await supabase
+          .from('teams')
+          .select('organization')
+          .eq('id', userProfile.team_id)
+          .single();
+
+        if (team?.organization) {
+          organization = team.organization;
+        }
+      }
       const functionName = organization === 'FRC' ? 'first-events' : 'ftc-events';
 
       const { data, error } = await supabase.functions.invoke(functionName, {
@@ -99,7 +107,7 @@ const UpcomingEvents = () => {
           .filter((event: FtcEvent) => event.dateStart ? new Date(event.dateStart) > new Date() : true)
           .slice(0, 5);
       }
-      
+
       if (organization === 'FRC') {
         setFirstEvents(upcomingEvents);
       } else {
@@ -164,7 +172,7 @@ const UpcomingEvents = () => {
               .select('status')
               .eq('event_id', event.id)
               .eq('user_id', user!.id)
-              .single();
+              .maybeSingle();
 
             const startDate = new Date(event.start_time);
             const endDate = new Date(event.end_time);
@@ -180,7 +188,7 @@ const UpcomingEvents = () => {
             }
 
             const timeString = format(startDate, 'h:mm a');
-            
+
             let status = 'upcoming';
             if (userRsvp) {
               status = userRsvp.status === 'yes' ? 'confirmed' : userRsvp.status === 'maybe' ? 'maybe' : 'declined';
@@ -210,6 +218,176 @@ const UpcomingEvents = () => {
       console.error('Error fetching upcoming events:', error);
     }
   };
+
+  const ensureEventInDb = async (event: FirstEvent | FtcEvent) => {
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('team_id')
+      .eq('user_id', user!.id)
+      .single();
+
+    if (!userProfile?.team_id) {
+      toast({
+        title: 'Error',
+        description: 'You must be in a team to add events.',
+        variant: 'destructive',
+      });
+      return { id: null, isNew: false };
+    }
+
+    const title = event.name;
+    const start_time = event.dateStart ? new Date(event.dateStart).toISOString() : new Date().toISOString();
+    const end_time = event.dateEnd ? new Date(event.dateEnd).toISOString() : new Date().toISOString();
+
+    let location = 'TBD';
+    if ('address' in event) location = event.address || 'TBD';
+    else if ('venue' in event) location = [event.venue, event.city, event.stateprov].filter(Boolean).join(', ') || 'TBD';
+
+    const { data: existingEvents } = await supabase
+      .from('events')
+      .select('id')
+      .eq('team_id', userProfile.team_id)
+      .eq('title', title)
+      .eq('start_time', start_time)
+      .limit(1);
+
+    if (existingEvents && existingEvents.length > 0) {
+      return { id: existingEvents[0].id, isNew: false };
+    }
+
+    const { data: newEvent, error } = await supabase
+      .from('events')
+      .insert({
+        title,
+        start_time,
+        end_time,
+        location,
+        event_type: 'competition',
+        team_id: userProfile.team_id,
+        created_by: user!.id,
+        description: `Official ${'districtCode' in event ? 'FRC' : 'FTC'} Event`
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error creating event:', error);
+      throw error;
+    }
+
+    return { id: newEvent.id, isNew: true };
+  };
+
+  const handleAddToCalendar = async (event: FirstEvent | FtcEvent) => {
+    try {
+      const { isNew } = await ensureEventInDb(event);
+
+      if (isNew) {
+        toast({
+          title: 'Success',
+          description: 'Event added to calendar successfully.',
+        });
+        fetchUpcomingEvents();
+      } else {
+        toast({
+          title: 'Info',
+          description: 'This event is already in your calendar.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add event to calendar.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePlanTransportation = async (event: FirstEvent | FtcEvent) => {
+    try {
+      const { id: eventId } = await ensureEventInDb(event);
+
+      if (!eventId) return;
+
+      const { count } = await supabase
+        .from('carpools')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', eventId);
+
+      if (count && count > 0) {
+        toast({
+          title: 'Info',
+          description: 'Transportation is already being planned for this event.',
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('carpools')
+        .insert({
+          event_id: eventId,
+          driver_id: user!.id,
+          departure_location: 'TBD',
+          departure_time: event.dateStart ? new Date(event.dateStart).toISOString() : new Date().toISOString(),
+          available_seats: 4,
+          notes: 'Created via Dashboard'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Transportation request added. You can now manage it in the Transportation page.',
+      });
+
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to plan transportation.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRSVP = async (eventId: string) => {
+    try {
+      // Check current status first
+      const { data: currentRsvp } = await supabase
+        .from('event_rsvps')
+        .select('status')
+        .eq('event_id', eventId)
+        .eq('user_id', user!.id)
+        .single();
+
+      const newStatus = currentRsvp?.status === 'yes' ? 'no' : 'yes';
+
+      const { error } = await supabase
+        .from('event_rsvps')
+        .upsert({
+          event_id: eventId,
+          user_id: user!.id,
+          status: newStatus,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: `RSVP updated to ${newStatus === 'yes' ? 'Confirmed' : 'Declined'}`,
+      });
+
+      fetchUpcomingEvents();
+    } catch (error) {
+      console.error('Error updating RSVP:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update RSVP',
+        variant: 'destructive',
+      });
+    }
+  };
+
+
 
   const getEventColor = (type: string) => {
     switch (type) {
@@ -289,14 +467,14 @@ const UpcomingEvents = () => {
                     )}
                   </div>
                 </div>
-                
+
                 {event.address && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
                     {event.address}
                   </div>
                 )}
-                
+
                 <div className="flex gap-2 pt-2">
                   {event.website && (
                     <Button size="sm" variant="outline" asChild>
@@ -307,10 +485,10 @@ const UpcomingEvents = () => {
                       </a>
                     </Button>
                   )}
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => handleAddToCalendar(event)}>
                     Add to Calendar
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => handlePlanTransportation(event)}>
                     Plan Transportation
                   </Button>
                 </div>
@@ -358,14 +536,14 @@ const UpcomingEvents = () => {
                     )}
                   </div>
                 </div>
-                
+
                 {(event.address || event.city || event.venue) && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
                     {event.address || [event.venue, event.city, event.stateprov].filter(Boolean).join(', ')}
                   </div>
                 )}
-                
+
                 <div className="flex gap-2 pt-2">
                   {event.website && (
                     <Button size="sm" variant="outline" asChild>
@@ -376,10 +554,10 @@ const UpcomingEvents = () => {
                       </a>
                     </Button>
                   )}
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => handleAddToCalendar(event)}>
                     Add to Calendar
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => handlePlanTransportation(event)}>
                     Plan Transportation
                   </Button>
                 </div>
@@ -424,10 +602,20 @@ const UpcomingEvents = () => {
                   </div>
                 </div>
                 <div className="flex space-x-2 mt-3">
-                  <Button size="sm" variant="outline" className="text-xs">
-                    RSVP
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                    onClick={() => handleRSVP(event.id)}
+                  >
+                    {event.status === 'confirmed' ? 'Cancel RSVP' : 'RSVP'}
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-xs">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs"
+                    onClick={() => toast({ title: "Event Details", description: `${event.title} at ${event.location}` })}
+                  >
                     Details
                   </Button>
                 </div>
@@ -435,7 +623,7 @@ const UpcomingEvents = () => {
             ))}
           </div>
         )}
-        
+
         {events.length === 0 && firstEvents.length === 0 && ftcEvents.length === 0 && !loading && (
           <p className="text-muted-foreground text-center py-4">
             No upcoming events found.

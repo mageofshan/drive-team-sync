@@ -233,7 +233,7 @@ const Index = () => {
             .contains('tags', [category]);
 
           const progress = totalTasks ? Math.round((completedTasks! / totalTasks!) * 100) : 0;
-          
+
           let status = "Unknown";
           if (progress >= 90) status = "Ahead";
           else if (progress >= 75) status = "On Track";
@@ -275,7 +275,7 @@ const Index = () => {
           <p className="text-muted-foreground mb-6">
             Your robotics team's digital headquarters
           </p>
-          <Button 
+          <Button
             onClick={() => navigate('/auth')}
             className="bg-gradient-to-r from-first-blue to-first-red text-white shadow-glow"
           >
@@ -312,305 +312,311 @@ const Index = () => {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-subtle">
         <Navbar />
-        
+
         <main className="container mx-auto px-6 py-8">
-        {/* Hero Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                Welcome back, {teamName} {teamNumber}! 🤖
-              </h1>
-              <p className="text-muted-foreground">
-                {seasonInfo} • Building the future together
-              </p>
+          {/* Hero Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">
+                  Welcome back, {teamName} {teamNumber}! 🤖
+                </h1>
+                <p className="text-muted-foreground">
+                  {seasonInfo} • Building the future together
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Button
+                  className="bg-gradient-to-r from-first-blue to-first-red text-white shadow-glow"
+                  onClick={() => toast({
+                    title: "Championship Dashboard",
+                    description: "This feature is coming soon! Enhanced analytics and tracking will be available here.",
+                  })}
+                >
+                  <Trophy className="w-4 h-4 mr-2" />
+                  Championship Dashboard
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Button className="bg-gradient-to-r from-first-blue to-first-red text-white shadow-glow">
-                <Trophy className="w-4 h-4 mr-2" />
-                Championship Dashboard
-              </Button>
+          </div>
+
+          {/* Dashboard Stats */}
+          <div className="mb-8">
+            <DashboardStats />
+          </div>
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Recent Activity */}
+            <div className="lg:col-span-1">
+              <RecentActivity />
             </div>
-          </div>
-        </div>
 
-        {/* Dashboard Stats */}
-        <div className="mb-8">
-          <DashboardStats />
-        </div>
+            {/* Middle Column - Upcoming Events */}
+            <div className="lg:col-span-1">
+              <UpcomingEvents />
+            </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Recent Activity */}
-          <div className="lg:col-span-1">
-            <RecentActivity />
-          </div>
-
-          {/* Middle Column - Upcoming Events */}
-          <div className="lg:col-span-1">
-            <UpcomingEvents />
-          </div>
-
-          {/* Right Column - Team Progress */}
-          <div className="lg:col-span-1">
-            <Card className="border-border shadow-soft">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-lg font-semibold text-foreground">
-                  Season Progress
-                </CardTitle>
-                <Target className="w-5 h-5 text-first-blue" />
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {teamProgress.map((item) => (
-                  <div key={item.task} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">
-                        {item.task}
-                      </span>
-                      <Badge className={`text-xs ${getStatusColor(item.status)}`}>
-                        {item.status}
-                      </Badge>
-                    </div>
-                    <div className="space-y-1">
-                      <Progress value={item.progress} className="h-2" />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{item.progress}% complete</span>
-                        <span>Target: 100%</span>
+            {/* Right Column - Team Progress */}
+            <div className="lg:col-span-1">
+              <Card className="border-border shadow-soft">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-lg font-semibold text-foreground">
+                    Season Progress
+                  </CardTitle>
+                  <Target className="w-5 h-5 text-first-blue" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {teamProgress.map((item) => (
+                    <div key={item.task} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">
+                          {item.task}
+                        </span>
+                        <Badge className={`text-xs ${getStatusColor(item.status)}`}>
+                          {item.status}
+                        </Badge>
                       </div>
+                      <div className="space-y-1">
+                        <Progress value={item.progress} className="h-2" />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{item.progress}% complete</span>
+                          <span>Target: 100%</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                      <Clock className="w-4 h-4" />
+                      <span>Updated 2 hours ago</span>
                     </div>
                   </div>
-                ))}
-                
-                <div className="pt-4 border-t border-border">
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span>Updated 2 hours ago</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Quick Actions */}
-            <Card className="border-border shadow-soft mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-foreground">
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Dialog open={isLogHoursOpen} onOpenChange={setIsLogHoursOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Wrench className="w-4 h-4 mr-2" />
-                      Log Work Hours
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Log Work Hours</DialogTitle>
-                      <DialogDescription>
-                        Log the hours you worked on a specific task.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Hours Worked</label>
-                        <Input
-                          type="number"
-                          step="0.5"
-                          placeholder="Enter hours worked"
-                          value={hoursToLog}
-                          onChange={(e) => setHoursToLog(e.target.value)}
-                        />
+              {/* Quick Actions */}
+              <Card className="border-border shadow-soft mt-6">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-foreground">
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Dialog open={isLogHoursOpen} onOpenChange={setIsLogHoursOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Wrench className="w-4 h-4 mr-2" />
+                        Log Work Hours
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Log Work Hours</DialogTitle>
+                        <DialogDescription>
+                          Log the hours you worked on a specific task.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium">Hours Worked</label>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            placeholder="Enter hours worked"
+                            value={hoursToLog}
+                            onChange={(e) => setHoursToLog(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" onClick={() => setIsLogHoursOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleLogHours}>
+                            Log Hours
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={() => setIsLogHoursOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleLogHours}>
-                          Log Hours
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+                  </Dialog>
 
-                <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Target className="w-4 h-4 mr-2" />
-                      Create New Task
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Create New Task</DialogTitle>
-                      <DialogDescription>
-                        Create a new task and assign it to a team member.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <Form {...taskForm}>
-                      <form onSubmit={taskForm.handleSubmit(onCreateTask)} className="space-y-4">
-                        <FormField
-                          control={taskForm.control}
-                          name="title"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Title</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter task title" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={taskForm.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Description</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Enter task description" 
-                                  {...field} 
-                                  rows={3}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={taskForm.control}
-                          name="assigned_to"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Assign To</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Target className="w-4 h-4 mr-2" />
+                        Create New Task
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Create New Task</DialogTitle>
+                        <DialogDescription>
+                          Create a new task and assign it to a team member.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <Form {...taskForm}>
+                        <form onSubmit={taskForm.handleSubmit(onCreateTask)} className="space-y-4">
+                          <FormField
+                            control={taskForm.control}
+                            name="title"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Title</FormLabel>
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select team member" />
-                                  </SelectTrigger>
+                                  <Input placeholder="Enter task title" {...field} />
                                 </FormControl>
-                                <SelectContent>
-                                  {teamMembers.map((member) => (
-                                    <SelectItem key={member.user_id} value={member.user_id}>
-                                      {member.first_name} {member.last_name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <FormField
-                          control={taskForm.control}
-                          name="priority"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Priority</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormField
+                            control={taskForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description</FormLabel>
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select priority" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="low">Low</SelectItem>
-                                  <SelectItem value="medium">Medium</SelectItem>
-                                  <SelectItem value="high">High</SelectItem>
-                                  <SelectItem value="urgent">Urgent</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={taskForm.control}
-                          name="due_date"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                              <FormLabel>Due Date</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant="outline"
-                                      className="w-full pl-3 text-left font-normal"
-                                    >
-                                      {field.value ? (
-                                        format(field.value, "PPP")
-                                      ) : (
-                                        <span>Pick a date</span>
-                                      )}
-                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    disabled={(date) => date < new Date()}
-                                    initialFocus
+                                  <Textarea
+                                    placeholder="Enter task description"
+                                    {...field}
+                                    rows={3}
                                   />
-                                </PopoverContent>
-                              </Popover>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <Button type="submit" className="w-full">
-                          Create Task
-                        </Button>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
+                          <FormField
+                            control={taskForm.control}
+                            name="assigned_to"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Assign To</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select team member" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {teamMembers.map((member) => (
+                                      <SelectItem key={member.user_id} value={member.user_id}>
+                                        {member.first_name} {member.last_name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                <Dialog open={isMarkAttendanceOpen} onOpenChange={setIsMarkAttendanceOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Clock className="w-4 h-4 mr-2" />
-                      Mark Attendance
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Mark Attendance</DialogTitle>
-                      <DialogDescription>
-                        Mark your attendance for today's session.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Mark your attendance for today's session
-                      </p>
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={() => setIsMarkAttendanceOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleMarkAttendance}>
-                          <CheckCircle2 className="w-4 h-4 mr-2" />
-                          Mark Present
-                        </Button>
+                          <FormField
+                            control={taskForm.control}
+                            name="priority"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Priority</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select priority" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="medium">Medium</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="urgent">Urgent</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={taskForm.control}
+                            name="due_date"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-col">
+                                <FormLabel>Due Date</FormLabel>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <FormControl>
+                                      <Button
+                                        variant="outline"
+                                        className="w-full pl-3 text-left font-normal"
+                                      >
+                                        {field.value ? (
+                                          format(field.value, "PPP")
+                                        ) : (
+                                          <span>Pick a date</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                      </Button>
+                                    </FormControl>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={field.value}
+                                      onSelect={field.onChange}
+                                      disabled={(date) => date < new Date()}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <Button type="submit" className="w-full">
+                            Create Task
+                          </Button>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={isMarkAttendanceOpen} onOpenChange={setIsMarkAttendanceOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Clock className="w-4 h-4 mr-2" />
+                        Mark Attendance
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Mark Attendance</DialogTitle>
+                        <DialogDescription>
+                          Mark your attendance for today's session.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Mark your attendance for today's session
+                        </p>
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" onClick={() => setIsMarkAttendanceOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleMarkAttendance}>
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            Mark Present
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </CardContent>
-            </Card>
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
         </main>
       </div>
     </ProtectedRoute>

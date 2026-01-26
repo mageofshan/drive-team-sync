@@ -40,13 +40,21 @@ interface Budget {
 }
 
 const EXPENSE_CATEGORIES = [
-  'Travel', 'Equipment', 'Materials', 'Competition Fees', 
-  'Food', 'Merchandise', 'Tools', 'Other'
+  { label: 'Travel', value: 'travel' },
+  { label: 'Parts & Equipment', value: 'parts' },
+  { label: 'Hotel', value: 'hotel' },
+  { label: 'Food', value: 'food' },
+  { label: 'Registration', value: 'registration' },
+  { label: 'Tools', value: 'tools' },
+  { label: 'Other', value: 'other' }
 ];
 
 const INCOME_SOURCES = [
-  'Fundraising', 'Sponsorship', 'Grants', 'Donations', 
-  'Merchandise Sales', 'Competition Winnings', 'Other'
+  { label: 'Fundraising', value: 'fundraising' },
+  { label: 'Sponsorship', value: 'sponsorship' },
+  { label: 'Grant', value: 'grant' },
+  { label: 'Donation', value: 'donation' },
+  { label: 'Other', value: 'other' }
 ];
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7c7c'];
@@ -82,7 +90,7 @@ const Finances = () => {
 
   useEffect(() => {
     fetchData();
-    
+
     // Set up real-time subscription
     const channel = supabase
       .channel('finances-changes')
@@ -106,15 +114,42 @@ const Finances = () => {
       if (financeError) throw financeError;
 
       setRecords((financeData as any) || []);
-      
-      // Generate sample budgets for demo (in real app, these would come from database)
-      setBudgets([
-        { id: '1', category: 'Travel', amount: 5000, spent: 3200, period: 'monthly' },
-        { id: '2', category: 'Equipment', amount: 10000, spent: 7500, period: 'yearly' },
-        { id: '3', category: 'Competition Fees', amount: 2000, spent: 1200, period: 'monthly' },
-        { id: '4', category: 'Materials', amount: 3000, spent: 2100, period: 'monthly' }
-      ]);
-      
+
+      // Fetch budgets
+      const { data: budgetsData, error: budgetsError } = await supabase
+        .from('budgets')
+        .select('*');
+
+      if (budgetsError) {
+        // If table doesn't exist yet, we might get an error, fail gracefully or log
+        console.error('Error fetching budgets:', budgetsError);
+      } else {
+        // Calculate spent amount for each budget
+        const budgetsWithSpent = budgetsData?.map(budget => {
+          let spent = 0;
+          const now = new Date();
+          let startDate = new Date();
+
+          if (budget.period === 'monthly') {
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          } else {
+            startDate = new Date(now.getFullYear(), 0, 1);
+          }
+
+          const relevantExpenses = (financeData as any[])?.filter(record =>
+            record.type === 'expense' &&
+            (record.category === budget.category || record.expense_category === budget.category) &&
+            new Date(record.date) >= startDate
+          ) || [];
+
+          spent = relevantExpenses.reduce((sum, record) => sum + Number(record.amount), 0);
+
+          return { ...budget, spent };
+        }) || [];
+
+        setBudgets(budgetsWithSpent);
+      }
+
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -132,17 +167,33 @@ const Finances = () => {
     if (!user) return;
 
     try {
+      // Get user's team ID
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!userProfile?.team_id) {
+        toast({
+          title: "Error",
+          description: "You must be part of a team to add records",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase.from('finances').insert({
         type: formData.type,
         amount: parseFloat(formData.amount),
         description: formData.description,
-        category: formData.category,
+        category: formData.category, // This will be the enum value string (e.g. 'travel'), which is fine for the text column
         date: formData.date,
-        income_source: formData.type === 'income' ? (formData.source as any) : null,
+        income_source: formData.type === 'income' ? (formData.category as any) : null, // Use category state as it holds the selection
         expense_category: formData.type === 'expense' ? (formData.category as any) : null,
         receipt_url: formData.receiptUrl || null,
         created_by: user.id,
-        team_id: 'default-team-id' // This should come from user's team
+        team_id: userProfile.team_id
       });
 
       if (error) throw error;
@@ -173,27 +224,79 @@ const Finances = () => {
     }
   };
 
+  const handleCreateBudget = async () => {
+    if (!user) return;
+
+    try {
+      // Get user's team ID
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!userProfile?.team_id) {
+        toast({
+          title: "Error",
+          description: "You must be part of a team to set budgets",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase.from('budgets').insert({
+        category: budgetData.category,
+        amount: parseFloat(budgetData.amount),
+        period: budgetData.period,
+        team_id: userProfile.team_id,
+        created_by: user.id
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Budget set successfully",
+      });
+
+      setIsBudgetOpen(false);
+      setBudgetData({
+        category: '',
+        amount: '',
+        period: 'monthly'
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error creating budget:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create budget",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getFilteredRecords = () => {
     let filtered = [...records];
-    
+
     // Type filter
     if (filterType !== 'all') {
       filtered = filtered.filter(record => record.type === filterType);
     }
-    
+
     // Category filter
     if (filterCategory !== 'all') {
-      filtered = filtered.filter(record => 
-        record.category === filterCategory || 
+      filtered = filtered.filter(record =>
+        record.category === filterCategory ||
         record.expense_category === filterCategory ||
         record.income_source === filterCategory
       );
     }
-    
+
     // Date range filter
     const now = new Date();
     let startDate: Date;
-    
+
     switch (dateRange) {
       case '1month':
         startDate = startOfMonth(now);
@@ -210,9 +313,9 @@ const Finances = () => {
       default:
         startDate = new Date(0);
     }
-    
+
     filtered = filtered.filter(record => new Date(record.date) >= startDate);
-    
+
     return filtered;
   };
 
@@ -221,7 +324,7 @@ const Finances = () => {
     const totalIncome = filtered.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0);
     const totalExpenses = filtered.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
     const netBalance = totalIncome - totalExpenses;
-    
+
     return { totalIncome, totalExpenses, netBalance };
   };
 
@@ -232,16 +335,16 @@ const Finances = () => {
       if (!acc[month]) {
         acc[month] = { month, income: 0, expenses: 0 };
       }
-      
+
       if (record.type === 'income') {
         acc[month].income += record.amount;
       } else {
         acc[month].expenses += record.amount;
       }
-      
+
       return acc;
     }, {} as Record<string, any>);
-    
+
     return Object.values(monthlyData).reverse();
   };
 
@@ -252,7 +355,7 @@ const Finances = () => {
       acc[category] = (acc[category] || 0) + record.amount;
       return acc;
     }, {} as Record<string, number>);
-    
+
     return Object.entries(categoryTotals).map(([name, value]) => ({ name, value }));
   };
 
@@ -298,13 +401,13 @@ const Finances = () => {
                 <div className="space-y-4">
                   <div>
                     <Label>Category</Label>
-                    <Select value={budgetData.category} onValueChange={(value) => setBudgetData({...budgetData, category: value})}>
+                    <Select value={budgetData.category} onValueChange={(value) => setBudgetData({ ...budgetData, category: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
                         {EXPENSE_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -314,13 +417,13 @@ const Finances = () => {
                     <Input
                       type="number"
                       value={budgetData.amount}
-                      onChange={(e) => setBudgetData({...budgetData, amount: e.target.value})}
+                      onChange={(e) => setBudgetData({ ...budgetData, amount: e.target.value })}
                       placeholder="0.00"
                     />
                   </div>
                   <div>
                     <Label>Period</Label>
-                    <Select value={budgetData.period} onValueChange={(value: 'monthly' | 'yearly') => setBudgetData({...budgetData, period: value})}>
+                    <Select value={budgetData.period} onValueChange={(value: 'monthly' | 'yearly') => setBudgetData({ ...budgetData, period: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -330,11 +433,11 @@ const Finances = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button className="w-full">Create Budget</Button>
+                  <Button className="w-full" onClick={handleCreateBudget}>Create Budget</Button>
                 </div>
               </DialogContent>
             </Dialog>
-            
+
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
@@ -350,7 +453,7 @@ const Finances = () => {
                 <form onSubmit={handleCreateRecord} className="space-y-4">
                   <div>
                     <Label>Type</Label>
-                    <Select value={formData.type} onValueChange={(value: 'income' | 'expense') => setFormData({...formData, type: value})}>
+                    <Select value={formData.type} onValueChange={(value: 'income' | 'expense') => setFormData({ ...formData, type: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -367,7 +470,7 @@ const Finances = () => {
                       type="number"
                       step="0.01"
                       value={formData.amount}
-                      onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                       placeholder="0.00"
                       required
                     />
@@ -377,7 +480,7 @@ const Finances = () => {
                     <Label>Description</Label>
                     <Input
                       value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="What was this for?"
                       required
                     />
@@ -385,13 +488,13 @@ const Finances = () => {
 
                   <div>
                     <Label>{formData.type === 'income' ? 'Income Source' : 'Category'}</Label>
-                    <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                    <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder={`Select ${formData.type === 'income' ? 'source' : 'category'}`} />
                       </SelectTrigger>
                       <SelectContent>
                         {(formData.type === 'income' ? INCOME_SOURCES : EXPENSE_CATEGORIES).map((item) => (
-                          <SelectItem key={item} value={item}>{item}</SelectItem>
+                          <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -402,7 +505,7 @@ const Finances = () => {
                     <Input
                       type="date"
                       value={formData.date}
-                      onChange={(e) => setFormData({...formData, date: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                       required
                     />
                   </div>
@@ -412,7 +515,7 @@ const Finances = () => {
                     <Input
                       type="url"
                       value={formData.receiptUrl}
-                      onChange={(e) => setFormData({...formData, receiptUrl: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, receiptUrl: e.target.value })}
                       placeholder="https://..."
                     />
                   </div>
@@ -435,7 +538,7 @@ const Finances = () => {
               <div className="text-2xl font-bold text-green-600">${summary.totalIncome.toLocaleString()}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
@@ -445,7 +548,7 @@ const Finances = () => {
               <div className="text-2xl font-bold text-red-600">${summary.totalExpenses.toLocaleString()}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
@@ -457,7 +560,7 @@ const Finances = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Budgets</CardTitle>
@@ -484,7 +587,7 @@ const Finances = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Label>Period:</Label>
             <Select value={dateRange} onValueChange={setDateRange}>
@@ -570,9 +673,8 @@ const Finances = () => {
                   {filteredRecords.map((record) => (
                     <div key={record.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          record.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                        }`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${record.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                          }`}>
                           {record.type === 'income' ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
                         </div>
                         <div>
@@ -615,7 +717,7 @@ const Finances = () => {
                       </div>
                       <Progress value={(budget.spent / budget.amount) * 100} />
                       <div className="text-xs text-muted-foreground">
-                        {budget.amount - budget.spent > 0 
+                        {budget.amount - budget.spent > 0
                           ? `$${(budget.amount - budget.spent).toLocaleString()} remaining`
                           : `$${(budget.spent - budget.amount).toLocaleString()} over budget`
                         }

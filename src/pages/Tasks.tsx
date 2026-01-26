@@ -19,12 +19,12 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  CheckCircle2, 
-  Circle, 
+import {
+  Plus,
+  Search,
+  Filter,
+  CheckCircle2,
+  Circle,
   CalendarIcon,
   User,
   Target,
@@ -169,7 +169,7 @@ const Tasks = () => {
         return;
       }
 
-      const tagsArray = values.tags 
+      const tagsArray = values.tags
         ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean)
         : null;
 
@@ -208,7 +208,7 @@ const Tasks = () => {
 
   const toggleTaskStatus = async (taskId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'done' ? 'todo' : 'done';
-    
+
     try {
       const { error } = await supabase
         .from('tasks')
@@ -239,7 +239,7 @@ const Tasks = () => {
     try {
       const { error } = await supabase
         .from('tasks')
-        .update({ 
+        .update({
           actual_hours: (selectedTask.actual_hours || 0) + parseFloat(hoursToLog)
         })
         .eq('id', selectedTask.id);
@@ -312,7 +312,7 @@ const Tasks = () => {
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
     const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
     const matchesAssignee = assigneeFilter === 'all' || task.assigned_to === assigneeFilter;
@@ -341,7 +341,7 @@ const Tasks = () => {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-subtle">
         <Navbar />
-        
+
         <main className="container mx-auto px-6 py-8">
           {/* Header */}
           <div className="mb-8">
@@ -381,7 +381,7 @@ const Tasks = () => {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="description"
@@ -389,9 +389,9 @@ const Tasks = () => {
                           <FormItem>
                             <FormLabel>Description</FormLabel>
                             <FormControl>
-                              <Textarea 
-                                placeholder="Enter task description" 
-                                {...field} 
+                              <Textarea
+                                placeholder="Enter task description"
+                                {...field}
                                 rows={3}
                               />
                             </FormControl>
@@ -437,12 +437,12 @@ const Tasks = () => {
                                   <SelectValue placeholder="Select priority" />
                                 </SelectTrigger>
                               </FormControl>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                      </SelectContent>
+                              <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                                <SelectItem value="urgent">Urgent</SelectItem>
+                              </SelectContent>
                             </Select>
                             <FormMessage />
                           </FormItem>
@@ -495,9 +495,9 @@ const Tasks = () => {
                           <FormItem>
                             <FormLabel>Categories (comma-separated)</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="e.g. Mechanical, Electrical, Coding, Admin" 
-                                {...field} 
+                              <Input
+                                placeholder="e.g. Mechanical, Electrical, Coding, Admin"
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -512,10 +512,11 @@ const Tasks = () => {
                           <FormItem>
                             <FormLabel>Estimated Hours</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="Enter estimated hours" 
-                                {...field} 
+                              <Input
+                                type="number"
+                                placeholder="Enter estimated hours"
+                                {...field}
+                                value={field.value ?? ''}
                               />
                             </FormControl>
                             <FormMessage />
@@ -604,7 +605,7 @@ const Tasks = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Status" />
@@ -695,14 +696,14 @@ const Tasks = () => {
                     </div>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="pt-0">
                   {task.description && (
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                       {task.description}
                     </p>
                   )}
-                  
+
                   <div className="space-y-2">
                     {task.assigned_user && (
                       <div className="flex items-center space-x-2 text-sm">
@@ -712,7 +713,7 @@ const Tasks = () => {
                         </span>
                       </div>
                     )}
-                    
+
                     {task.due_date && (
                       <div className="flex items-center space-x-2 text-sm">
                         <CalendarIcon className="w-4 h-4 text-muted-foreground" />

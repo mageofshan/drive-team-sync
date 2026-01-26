@@ -21,18 +21,19 @@ import { useToast } from '@/hooks/use-toast';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import { FirstEventModal } from '@/components/FirstEventModal';
-import { 
-  Plus, 
-  Filter, 
+import {
+  Plus,
+  Filter,
   CalendarIcon,
-  Clock, 
+  Clock,
   Trophy,
   Target,
   Users,
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Pencil
 } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
@@ -94,6 +95,7 @@ const TeamCalendar = () => {
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
   const [isFirstEventModalOpen, setIsFirstEventModalOpen] = useState(false);
   const [userOrganization, setUserOrganization] = useState<'FRC' | 'FTC'>('FRC');
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
@@ -267,63 +269,98 @@ const TeamCalendar = () => {
         return;
       }
 
-      const { error } = await supabase.from('events').insert({
-        title: values.title,
-        description: values.description || null,
-        start_time: values.start_time.toISOString(),
-        end_time: values.end_time.toISOString(),
-        event_type: values.event_type,
-        location: values.location || null,
-        created_by: user!.id,
-        team_id: userProfile.team_id,
-      });
+      if (editingEventId) {
+        const { error } = await supabase
+          .from('events')
+          .update({
+            title: values.title,
+            description: values.description || null,
+            start_time: values.start_time.toISOString(),
+            end_time: values.end_time.toISOString(),
+            event_type: values.event_type,
+            location: values.location || null,
+          })
+          .eq('id', editingEventId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Log work hours if specified
-      if (values.hours && values.hours > 0) {
-        await supabase.from('finances').insert({
-          type: 'income',
-          amount: values.hours,
-          description: `Work hours: ${values.title}`,
-          date: values.start_time.toISOString().split('T')[0],
+        toast({
+          title: 'Success',
+          description: 'Event updated successfully',
+        });
+      } else {
+        const { error } = await supabase.from('events').insert({
+          title: values.title,
+          description: values.description || null,
+          start_time: values.start_time.toISOString(),
+          end_time: values.end_time.toISOString(),
+          event_type: values.event_type,
+          location: values.location || null,
           created_by: user!.id,
           team_id: userProfile.team_id,
-          category: 'Work Hours',
+        });
+
+        if (error) throw error;
+
+        // Log work hours if specified (only on create for simplicity)
+        if (values.hours && values.hours > 0) {
+          await supabase.from('finances').insert({
+            type: 'income',
+            amount: values.hours,
+            description: `Work hours: ${values.title}`,
+            date: values.start_time.toISOString().split('T')[0],
+            created_by: user!.id,
+            team_id: userProfile.team_id,
+            category: 'Work Hours',
+          });
+        }
+
+        toast({
+          title: 'Success',
+          description: 'Event created successfully',
         });
       }
 
-      toast({
-        title: 'Success',
-        description: 'Event created successfully',
-      });
-
       setIsCreateOpen(false);
+      setEditingEventId(null);
       setSelectedSlot(null);
       form.reset();
       fetchEvents();
     } catch (error) {
-      console.error('Error creating event:', error);
+      console.error('Error saving event:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create event',
+        description: `Failed to ${editingEventId ? 'update' : 'create'} event`,
         variant: 'destructive',
       });
     }
+  };
+
+  const handleEditEvent = (event: CalendarEventData) => {
+    form.setValue('title', event.title);
+    form.setValue('description', event.description || '');
+    form.setValue('start_time', event.start);
+    form.setValue('end_time', event.end);
+    form.setValue('location', (event as any).location || ''); // location might not be on CalendarEventData interface explicitly if not added
+    form.setValue('event_type', (event.category as any) || 'meeting');
+
+    setEditingEventId(event.id);
+    setIsEventDetailsOpen(false);
+    setIsCreateOpen(true);
   };
 
   const handleFirstEventSelect = (firstEvent: any) => {
     // Auto-fill form with FIRST event data
     const startDate = new Date(firstEvent.dateStart);
     const endDate = new Date(firstEvent.dateEnd);
-    
+
     form.setValue('title', firstEvent.name);
     form.setValue('description', `${firstEvent.type} Event${firstEvent.districtCode ? ` - District ${firstEvent.districtCode}` : ''}`);
     form.setValue('start_time', startDate);
     form.setValue('end_time', endDate);
     form.setValue('location', firstEvent.address || '');
     form.setValue('event_type', 'competition');
-    
+
     setIsFirstEventModalOpen(false);
     setIsCreateOpen(true);
   };
@@ -414,8 +451,8 @@ const TeamCalendar = () => {
           medium: '#2563eb', // blue
           low: '#16a34a', // green
         };
-        return { 
-          ...baseStyle, 
+        return {
+          ...baseStyle,
           backgroundColor: priorityColors[event.priority as keyof typeof priorityColors] || '#6b7280',
           color: 'white'
         };
@@ -427,24 +464,24 @@ const TeamCalendar = () => {
   };
 
   const filteredEvents = [...events, ...tasks].filter(event => {
-    const matchesType = typeFilter === 'all' || event.type === typeFilter || 
-                       (typeFilter === 'competition' && event.category === 'competition');
-    const matchesMember = memberFilter === 'all' || 
-                         event.assigned_to === memberFilter || 
-                         event.created_by === memberFilter;
-    
+    const matchesType = typeFilter === 'all' || event.type === typeFilter ||
+      (typeFilter === 'competition' && event.category === 'competition');
+    const matchesMember = memberFilter === 'all' ||
+      event.assigned_to === memberFilter ||
+      event.created_by === memberFilter;
+
     return matchesType && matchesMember;
   });
 
   // Calculate statistics
   const totalEvents = events.length;
   const totalTasks = tasks.length;
-  const upcomingDeadlines = tasks.filter(task => 
-    task.start >= new Date() && 
+  const upcomingDeadlines = tasks.filter(task =>
+    task.start >= new Date() &&
     task.start <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   ).length;
 
-  const nextCompetition = events.find(event => 
+  const nextCompetition = events.find(event =>
     event.category === 'competition' && event.start >= new Date()
   );
 
@@ -465,7 +502,7 @@ const TeamCalendar = () => {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-subtle">
         <Navbar />
-        
+
         <main className="container mx-auto px-6 py-8">
           {/* Header */}
           <div className="mb-8">
@@ -477,7 +514,13 @@ const TeamCalendar = () => {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <Dialog open={isCreateOpen} onOpenChange={(open) => {
+                  setIsCreateOpen(open);
+                  if (!open) {
+                    setEditingEventId(null);
+                    form.reset();
+                  }
+                }}>
                   <DialogTrigger asChild>
                     <Button className="bg-gradient-to-r from-first-blue to-first-red text-white shadow-glow">
                       <Plus className="w-4 h-4 mr-2" />
@@ -485,8 +528,8 @@ const TeamCalendar = () => {
                     </Button>
                   </DialogTrigger>
                 </Dialog>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setIsFirstEventModalOpen(true)}
                   className="flex items-center gap-2"
                 >
@@ -494,13 +537,13 @@ const TeamCalendar = () => {
                   Add FIRST Event
                 </Button>
               </div>
-              
+
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Create New Event</DialogTitle>
+                    <DialogTitle>{editingEventId ? 'Edit Event' : 'Create New Event'}</DialogTitle>
                     <DialogDescription>
-                      Create a new event for your team. Choose the event type and fill in the details.
+                      {editingEventId ? 'Update event details.' : 'Create a new event for your team. Choose the event type and fill in the details.'}
                     </DialogDescription>
                   </DialogHeader>
                   <Form {...form}>
@@ -518,7 +561,7 @@ const TeamCalendar = () => {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="description"
@@ -526,9 +569,9 @@ const TeamCalendar = () => {
                           <FormItem>
                             <FormLabel>Description</FormLabel>
                             <FormControl>
-                              <Textarea 
-                                placeholder="Enter event description" 
-                                {...field} 
+                              <Textarea
+                                placeholder="Enter event description"
+                                {...field}
                                 rows={3}
                               />
                             </FormControl>
@@ -701,10 +744,10 @@ const TeamCalendar = () => {
                           <FormItem>
                             <FormLabel>Work Hours (if applicable)</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="Enter hours worked" 
-                                {...field} 
+                              <Input
+                                type="number"
+                                placeholder="Enter hours worked"
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -713,7 +756,7 @@ const TeamCalendar = () => {
                       />
 
                       <Button type="submit" className="w-full">
-                        Create Event
+                        {editingEventId ? 'Update Event' : 'Create Event'}
                       </Button>
                     </form>
                   </Form>
@@ -924,14 +967,26 @@ const TeamCalendar = () => {
               {selectedEvent && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      {format(selectedEvent.start, 'PPP p')} - {format(selectedEvent.end, 'p')}
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <p className="text-sm text-muted-foreground">
+                        {format(selectedEvent.start, 'PPP p')} - {format(selectedEvent.end, 'p')}
+                      </p>
+                      {selectedEvent.created_by === user?.id && selectedEvent.type === 'event' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditEvent(selectedEvent)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     {selectedEvent.description && (
                       <p className="text-sm">{selectedEvent.description}</p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-3">
                     {selectedEvent.type === 'event' && (
                       <>
@@ -961,7 +1016,7 @@ const TeamCalendar = () => {
                             </Button>
                           </div>
                         </div>
-                        
+
                         {selectedEvent.category === 'practice' && (
                           <div>
                             <h4 className="font-medium mb-2">Attendance</h4>
